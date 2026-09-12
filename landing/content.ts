@@ -1,26 +1,42 @@
 // All page copy, in both languages. Keep the two objects shaped identically.
+import type { Mood } from "@/components/Avatar"
+
 export type Lang = "fr" | "en"
 
 export type Poll = { question: string; options: [string, number][]; correct: number }
 export type Message = { from: "bot" | "me"; text?: string; poll?: Poll; time: string }
 export type Chat = { kind: "dm" | "group"; name: string; sub: string; messages: Message[] }
-export type Scene = { title: string; text: string; chat: Chat }
+export type Scene = { title: string; text: string; mood: Mood; chat: Chat }
 
 const BOT = "Le Petit Nicolas"
 
 const fr = {
   brand: BOT,
+  nav: { demo: "Voir la démo" },
   hero: {
+    eyebrow: "Pour les profs de collège qui font cours en ligne",
     title: { before: "Le suivi du cours s'écrit ", highlight: "tout seul", after: "." },
     lead:
       "Après chaque cours en ligne, Le Petit Nicolas envoie aux élèves un quiz sur ce qui a vraiment été enseigné, et rend au professeur non pas une note, mais ce que la classe a mal compris.",
-    tag: "Le professeur ne tape qu'un mot : « ok ».",
+    cta: "Voir la démo",
+    secondary: "Comment ça marche ↓",
+    trust: ["Rien à installer pour les élèves", "Le prof garde la main", "L'audio n'est jamais conservé"],
     bubble: "Coucou ! Je m'occupe du quiz, toi tu fais cours.",
+  },
+  problem: {
+    title: "Un prof, trente élèves, zéro assistant.",
+    text: "Après le cours, vérifier qui a compris prend un temps que le professeur n'a pas. Alors ça ne se fait pas. Les élèves perdus ne lèvent pas la main, et les familles qui le peuvent achètent la différence en cours particuliers.",
+    bubble: "Et si je m'en occupais ?",
+  },
+  story: {
+    title: "Comment ça marche",
+    text: "Quatre temps, tous après le cours. Le professeur intervient une fois.",
   },
   scenes: [
     {
       title: "Le cours se termine.",
       text: "Fathom a transcrit. Le professeur reçoit le quiz.",
+      mood: "think",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -34,6 +50,7 @@ const fr = {
     {
       title: "Les élèves répondent.",
       text: "Cinq sondages dans le groupe de la classe. Depuis leur téléphone.",
+      mood: "talk",
       chat: {
         kind: "group", name: "4ème B · Maths", sub: "29 membres",
         messages: [
@@ -45,6 +62,7 @@ const fr = {
     {
       title: "Le professeur reçoit le diagnostic.",
       text: "Pas une note : l'erreur dominante, et quoi refaire.",
+      mood: "cheer",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -57,6 +75,7 @@ const fr = {
     {
       title: "Chaque élève revoit ses erreurs.",
       text: "Un message à ceux qui se sont trompés. Le tuteur fait le reste.",
+      mood: "wink",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -69,26 +88,92 @@ const fr = {
       },
     },
   ] as Scene[],
+  trick: {
+    title: "Les mauvaises réponses sont le diagnostic.",
+    text: "Chaque distracteur est écrit pour attraper une erreur précise. Compter qui a choisi quoi, c'est déjà savoir quoi refaire au prochain cours.",
+    question: "1/4 + 2/3 = ?",
+    rows: [
+      ["3/7", "additionne les dénominateurs"],
+      ["3/12", "oublie de transformer les numérateurs"],
+      ["2/12", "multiplie au lieu d'additionner"],
+      ["11/12", "juste"],
+    ],
+  },
+  benefits: {
+    title: "Ce que ça change",
+    items: [
+      ["Pour le professeur", "Un rapport en trois lignes, pas un tableur. Il sait quoi refaire jeudi."],
+      ["Pour les élèves", "Un quiz sur leur téléphone, puis un tuteur qui reprend leurs erreurs. Rien à installer."],
+      ["Pour la classe", "Une mémoire qui se construit seule : qui maîtrise quoi, cours après cours."],
+    ],
+  },
+  numbers: [
+    ["1", "mot à taper"],
+    ["5", "questions par cours"],
+    ["3", "lignes de rapport"],
+    ["0", "appli à installer"],
+  ],
+  rules: {
+    title: "Construit pour la classe, pas pour l'administration.",
+    items: [
+      ["Le professeur dirige.", "L'agent propose, le professeur approuve. Rien n'arrive aux élèves sans son « ok »."],
+      ["Seul le cours est enregistré.", "Fathom transcrit la visio ; on garde le texte, pas l'audio. Pas de caméra, pas de voix d'élève."],
+      ["Le rapport va au professeur.", "Jamais à l'administration. Jamais une note sur le professeur."],
+      ["Les élèves n'installent rien.", "Telegram, qu'ils ont déjà. Des sondages dans le groupe, un message privé pour le tutorat."],
+    ],
+  },
+  faq: {
+    title: "Questions fréquentes",
+    items: [
+      ["Et si le cours est en présentiel ?", "Aujourd'hui, Le Petit Nicolas rejoint les cours en visio (Zoom, Meet, Teams). La version « téléphone posé sur le bureau » est la prochaine étape."],
+      ["Que devient l'enregistrement ?", "Fathom transcrit, on garde le texte du cours, jamais l'audio. Aucune voix d'élève, aucune caméra."],
+      ["Quelles matières, quels niveaux ?", "Le quiz est écrit à partir du transcript et du programme, donc toutes les matières. Testé au collège, sur les fractions en 4ème."],
+      ["Et si le quiz est mauvais ?", "Le professeur le voit avant les élèves. Un « ok » l'envoie, un « non » l'enterre, et il peut le modifier dans la console."],
+      ["Combien ça coûte ?", "Rien pour l'instant : c'est un prototype de hackathon. On cherche des professeurs pour l'essayer avec leur classe."],
+    ],
+  },
+  demo: { title: "La démo", text: "Un cours de fractions sur Google Meet, deux téléphones d'élèves, un professeur qui répond « ok ».", placeholder: "La vidéo arrive après la démo.", code: "Voir le code" },
+  final: {
+    title: "Un professeur, une classe, un cours. On essaie ?",
+    text: "Écrivez-nous, on branche Le Petit Nicolas sur votre prochain cours en ligne.",
+    cta: "Écrire à l'équipe",
+    bubble: "Je suis prêt quand vous voulez.",
+  },
   footer: {
     team: "Construit en une journée à Paris par une équipe de quatre, pour les collèges qui n'ont pas d'assistant pédagogique.",
     stack: "Fathom · Inngest · Mastra · Claude · Telegram · CopilotKit · Supabase · Vercel",
     code: "Code source",
+    avatar: "Avatar : style Adventurer de Lisa Wischofsky (CC BY 4.0), via DiceBear.",
   },
 }
 
 const en: typeof fr = {
   brand: BOT,
+  nav: { demo: "Watch the demo" },
   hero: {
+    eyebrow: "For secondary-school teachers who teach online",
     title: { before: "The lesson's follow‑up writes ", highlight: "itself", after: "." },
     lead:
       "After every online class, Le Petit Nicolas sends students a quiz about what was actually taught, and gives the teacher not a score, but what the class misunderstood.",
-    tag: "The teacher types one word: “ok”.",
+    cta: "Watch the demo",
+    secondary: "How it works ↓",
+    trust: ["Nothing to install for students", "The teacher stays in charge", "Audio is never kept"],
     bubble: "Hi! I'll handle the quiz, you teach.",
+  },
+  problem: {
+    title: "One teacher, thirty students, zero assistants.",
+    text: "After class, checking who understood takes time the teacher doesn't have. So it doesn't happen. Lost students don't raise their hand, and families who can afford it buy the difference in private tutoring.",
+    bubble: "What if I took care of it?",
+  },
+  story: {
+    title: "How it works",
+    text: "Four steps, all after class. The teacher steps in once.",
   },
   scenes: [
     {
       title: "The class ends.",
       text: "Fathom has transcribed. The teacher receives the quiz.",
+      mood: "think",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -102,6 +187,7 @@ const en: typeof fr = {
     {
       title: "Students answer.",
       text: "Five polls in the class group. From their phones.",
+      mood: "talk",
       chat: {
         kind: "group", name: "4ème B · Maths", sub: "29 members",
         messages: [
@@ -113,6 +199,7 @@ const en: typeof fr = {
     {
       title: "The teacher gets the diagnosis.",
       text: "Not a score: the main error, and what to redo.",
+      mood: "cheer",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -125,6 +212,7 @@ const en: typeof fr = {
     {
       title: "Each student reviews their mistakes.",
       text: "A message to those who got it wrong. The tutor does the rest.",
+      mood: "wink",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -137,10 +225,62 @@ const en: typeof fr = {
       },
     },
   ] as Scene[],
+  trick: {
+    title: "Wrong answers are the diagnosis.",
+    text: "Each wrong option is written to catch one specific mistake. Counting who picked what already tells the teacher what to redo next lesson.",
+    question: "1/4 + 2/3 = ?",
+    rows: [
+      ["3/7", "adds the denominators"],
+      ["3/12", "forgets to convert the numerators"],
+      ["2/12", "multiplies instead of adding"],
+      ["11/12", "correct"],
+    ],
+  },
+  benefits: {
+    title: "What changes",
+    items: [
+      ["For the teacher", "A three-line report, not a spreadsheet. They know what to redo on Thursday."],
+      ["For students", "A quiz on their phone, then a tutor who goes over their mistakes. Nothing to install."],
+      ["For the class", "A memory that builds itself: who masters what, lesson after lesson."],
+    ],
+  },
+  numbers: [
+    ["1", "word to type"],
+    ["5", "questions per lesson"],
+    ["3", "lines of report"],
+    ["0", "apps to install"],
+  ],
+  rules: {
+    title: "Built for the classroom, not for the administration.",
+    items: [
+      ["The teacher leads.", "The agent proposes, the teacher approves. Nothing reaches students without their “ok”."],
+      ["Only the lesson is recorded.", "Fathom transcribes the call; we keep the text, not the audio. No camera, no student voices."],
+      ["The report goes to the teacher.", "Never to the administration. Never a score on the teacher."],
+      ["Students install nothing.", "Telegram, which they already have. Polls in the group, a private message for tutoring."],
+    ],
+  },
+  faq: {
+    title: "Frequently asked questions",
+    items: [
+      ["What about in-person classes?", "Today Le Petit Nicolas joins online classes (Zoom, Meet, Teams). The “phone on the desk” version is the next step."],
+      ["What happens to the recording?", "Fathom transcribes; we keep the lesson's text, never the audio. No student voices, no camera."],
+      ["Which subjects and levels?", "The quiz is written from the transcript and the syllabus, so any subject. Tested in middle school, on fractions."],
+      ["What if the quiz is bad?", "The teacher sees it before the students do. An “ok” sends it, a “no” buries it, and it can be edited in the console."],
+      ["How much does it cost?", "Nothing for now: it's a hackathon prototype. We're looking for teachers to try it with their class."],
+    ],
+  },
+  demo: { title: "The demo", text: "A fractions lesson on Google Meet, two student phones, a teacher replying “ok”.", placeholder: "The video comes after the demo.", code: "See the code" },
+  final: {
+    title: "One teacher, one class, one lesson. Shall we try?",
+    text: "Write to us and we'll plug Le Petit Nicolas into your next online class.",
+    cta: "Write to the team",
+    bubble: "Ready when you are.",
+  },
   footer: {
     team: "Built in one day in Paris by a team of four, for the schools that have no teaching assistant.",
     stack: "Fathom · Inngest · Mastra · Claude · Telegram · CopilotKit · Supabase · Vercel",
     code: "Source code",
+    avatar: "Avatar: Adventurer style by Lisa Wischofsky (CC BY 4.0), via DiceBear.",
   },
 }
 

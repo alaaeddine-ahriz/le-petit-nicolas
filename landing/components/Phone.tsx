@@ -1,5 +1,5 @@
 // A phone showing one Telegram conversation. Frame from devices.css (MIT); the chat inside is ours.
-import { Mascot } from "@/components/Mascot"
+import { Avatar } from "@/components/Avatar"
 import type { Chat, Poll } from "@/content"
 
 function PollCard({ poll }: { poll: Poll }) {
@@ -35,7 +35,7 @@ export function Phone({ chat, sceneKey, className }: { chat: Chat; sceneKey: num
               <div className="tg-top">
                 <span className="tg-back">‹</span>
                 {chat.kind === "dm" ? (
-                  <span className="tg-avatar"><Mascot variant="head" title="" /></span>
+                  <span className="tg-avatar"><Avatar size={40} /></span>
                 ) : (
                   <span className="tg-avatar tg-avatar-group">4B</span>
                 )}
