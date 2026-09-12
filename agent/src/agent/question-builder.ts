@@ -79,9 +79,12 @@ The question MUST be built from what the teacher actually said, not from a textb
 - If you don't have enough specific transcript material (e.g. only a short summary), construct a minimal example consistent with what was taught, and set \`exampleOrigin: "synthesized"\` - be honest about this, never disguise a synthesized example as transcript-grounded.
 
 ## French Math Notation and Conventions
+- CRITICAL: this text is displayed as PLAIN TEXT in a Telegram poll/chat, which does not render LaTeX or any math markup. NEVER use LaTeX syntax anywhere in questionText or option text - no \`\frac{}{}\`, no \`\sqrt{}\`, no \`\( ... \)\` or \`\[ ... \]\` delimiters, no \`$...$\` or \`$$...$$\`, no \`^\` for exponents. If you catch yourself about to write a backslash command, stop and use the plain-text form below instead.
 - Decimal separator is the comma (virgule): write 3,5 not 3.5. Write 0,75 not 0.75.
 - Thousands separator is a space: write 1 000 not 1,000.
-- Fractions: in plain text use the form "1/2".
+- Fractions: plain text "1/2", never \`\frac{1}{2}\`.
+- Square roots: plain text "racine de 2" or "√2" (the unicode character is fine, LaTeX \`\sqrt{}\` is not), never \`\sqrt{2}\`.
+- Exponents: plain text "x au carré" or "x^2" or "x²" (unicode superscript is fine), never LaTeX \`x^{2}\`.
 - Variable names: French collège uses x, y, n. Functions use f, g, h.
 - Multiplication sign: use "×" (not "*"). Division: use "÷" or the fraction bar.
 - Geometry: angles in degrees, notation "angle ABC" or similar - match what the teacher used if known.

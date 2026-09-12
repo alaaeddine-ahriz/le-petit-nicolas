@@ -5,6 +5,26 @@ import { questionBuilderState, validateProposedQuestion, type QuestionOption } f
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
+/**
+ * Safety net for a recurring model mistake: writing LaTeX (\frac{}{}, \sqrt{},
+ * \(...\), $...$, ^{}) even when told not to, which Telegram displays as raw
+ * text instead of rendering. Cheap regex conversions rather than a full LaTeX
+ * parser - covers the patterns that actually show up in practice.
+ */
+function stripLatex(text: string): string {
+  return text
+    .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "$1/$2")
+    .replace(/\\sqrt\{([^{}]*)\}/g, "√$1")
+    .replace(/\\left|\\right/g, "")
+    .replace(/\\\(|\\\)|\\\[|\\\]/g, "")
+    .replace(/\$\$?/g, "")
+    .replace(/\^\{([^{}]*)\}/g, "^$1")
+    .replace(/\\times/g, "×")
+    .replace(/\\div/g, "÷")
+    .replace(/\\,/g, " ")
+    .trim();
+}
+
 const questionOptionSchema = z.object({
   text: z.string().min(1).describe("The answer text in French, using the teacher's notation"),
   isCorrect: z.boolean().describe("True for the correct answer, false for all distractors"),
@@ -61,9 +81,15 @@ export const propose_and_save_quiz = defineTool({
   execute: async ({ questionText, options, conceptLabel, transcriptExcerpt, exampleOrigin, fathomMeetingId, lessonId }) => {
     validateProposedQuestion(options as QuestionOption[]);
 
+    const cleanQuestionText = stripLatex(questionText);
+    const cleanOptions = (options as QuestionOption[]).map((option) => ({
+      ...option,
+      text: stripLatex(option.text),
+    }));
+
     questionBuilderState.proposedQuestion = {
-      questionText,
-      options: options as QuestionOption[],
+      questionText: cleanQuestionText,
+      options: cleanOptions,
       conceptReference: { conceptName: conceptLabel, documentSection: null, offDocument: false },
       sourceTranscript: [{ timestamp: new Date().toISOString(), text: transcriptExcerpt }],
       generatedAt: new Date().toISOString(),
