@@ -17,10 +17,7 @@ function SceneBlock({ scene, index, onActive }: { scene: Scene; index: number; o
   useEffect(() => { if (inView) onActive(index) }, [inView, index, onActive])
   return (
     <div className="scene" ref={ref}>
-      <div className="scene-head">
-        <span className="scene-n">{index + 1}</span>
-        <Avatar pose={scene.pose} size={96} className="pose" />
-      </div>
+      <span className="scene-n">{index + 1}</span>
       <h3>{scene.title}</h3>
       <p>{scene.text}</p>
       <Phone chat={scene.chat} sceneKey={index} className="phone-inline" />
@@ -53,7 +50,7 @@ export default function Page() {
       <header className="nav-bar">
         <div className="wrap nav">
           <a className="brand" href="#top">
-            <span className="face-wrap"><Avatar pose="face" size={36} /></span>
+            <span className="face-wrap"><Avatar size={36} /></span>
             {t.brand}
           </a>
           <div className="nav-right">
@@ -70,7 +67,7 @@ export default function Page() {
       </header>
 
       <main id="top">
-        {/* 1. Hero: who it's for, what it does, one action, proof it's safe */}
+        {/* 1. Hero */}
         <section className="wrap hero">
           <div>
             <span className="eyebrow">{t.hero.eyebrow}</span>
@@ -90,20 +87,14 @@ export default function Page() {
           </div>
           <div className="mascot-stage">
             <div className="bubble">{t.hero.bubble}</div>
-            <Avatar pose="hello" size={340} className="mascot" />
+            <Avatar size={340} className="mascot" />
           </div>
         </section>
 
         {/* 2. The problem */}
-        <section className="wrap problem">
-          <div>
-            <h2>{t.problem.title}</h2>
-            <p>{t.problem.text}</p>
-          </div>
-          <div className="aside">
-            <Avatar pose="think" size={200} />
-            <div className="bubble side-bubble">{t.problem.bubble}</div>
-          </div>
+        <section className="wrap narrow">
+          <h2>{t.problem.title}</h2>
+          <p>{t.problem.text}</p>
         </section>
 
         {/* 3. How it works: the phone follows the scroll */}
@@ -128,7 +119,7 @@ export default function Page() {
             <h2>{t.trick.title}</h2>
             <p>{t.trick.text}</p>
           </div>
-          <div className="card sketch">
+          <div className="card">
             <div className="card-q">{t.trick.question}</div>
             <table>
               <tbody>
@@ -146,23 +137,15 @@ export default function Page() {
           </div>
         </section>
 
-        {/* 5. Benefits + numbers */}
+        {/* 5. Benefits */}
         <section className="wrap">
           <h2>{t.benefits.title}</h2>
           <div className="grid">
             {t.benefits.items.map(([title, text]) => (
-              <article className="card sketch" key={title}>
+              <article className="card" key={title}>
                 <h3>{title}</h3>
                 <p>{text}</p>
               </article>
-            ))}
-          </div>
-          <div className="numbers">
-            {t.numbers.map(([n, label]) => (
-              <div className="stat" key={label}>
-                <b>{n}</b>
-                <span>{label}</span>
-              </div>
             ))}
           </div>
         </section>
@@ -182,7 +165,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* 7. FAQ: objections */}
+        {/* 7. FAQ */}
         <section className="wrap faq">
           <h2>{t.faq.title}</h2>
           {t.faq.items.map(([q, a]) => (
@@ -201,25 +184,19 @@ export default function Page() {
             {DEMO_VIDEO ? (
               <iframe src={DEMO_VIDEO} title={t.demo.title} allow="autoplay; fullscreen" allowFullScreen />
             ) : (
-              <div>
-                <Avatar pose="ok" size={160} />
-                <div className="placeholder">{t.demo.placeholder}</div>
-              </div>
+              <div className="placeholder">{t.demo.placeholder}</div>
             )}
           </div>
           <p style={{ marginTop: 16 }}><a className="link" href={GITHUB}>{t.demo.code} →</a></p>
         </section>
 
         {/* 9. Final call to action */}
-        <section className="wrap final">
-          <Avatar pose="cheer" size={220} />
-          <div>
-            <h2>{t.final.title}</h2>
-            <p>{t.final.text}</p>
-            <div className="cta">
-              {CONTACT && <a className="btn primary" href={CONTACT}>{t.final.cta}</a>}
-              <a className="btn" href="#demo">{t.hero.cta}</a>
-            </div>
+        <section className="wrap narrow">
+          <h2>{t.final.title}</h2>
+          <p>{t.final.text}</p>
+          <div className="cta">
+            {CONTACT && <a className="btn primary" href={CONTACT}>{t.final.cta}</a>}
+            <a className="btn" href="#demo">{t.hero.cta}</a>
           </div>
         </section>
       </main>

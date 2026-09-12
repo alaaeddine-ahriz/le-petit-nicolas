@@ -1,12 +1,10 @@
 // All page copy, in both languages. Keep the two objects shaped identically.
-import type { Pose } from "@/components/Avatar"
-
 export type Lang = "fr" | "en"
 
 export type Poll = { question: string; options: [string, number][]; correct: number }
 export type Message = { from: "bot" | "me"; text?: string; poll?: Poll; time: string }
 export type Chat = { kind: "dm" | "group"; name: string; sub: string; messages: Message[] }
-export type Scene = { title: string; text: string; pose: Pose; chat: Chat }
+export type Scene = { title: string; text: string; chat: Chat }
 
 const BOT = "Le Petit Nicolas"
 
@@ -26,7 +24,6 @@ const fr = {
   problem: {
     title: "Un prof, trente élèves, zéro assistant.",
     text: "Après le cours, vérifier qui a compris prend un temps que le professeur n'a pas. Alors ça ne se fait pas. Les élèves perdus ne lèvent pas la main, et les familles qui le peuvent achètent la différence en cours particuliers.",
-    bubble: "Et si je m'en occupais ?",
   },
   story: {
     title: "Comment ça marche",
@@ -36,7 +33,6 @@ const fr = {
     {
       title: "Le cours se termine.",
       text: "Fathom a transcrit. Le professeur reçoit le quiz.",
-      pose: "phone",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -50,7 +46,6 @@ const fr = {
     {
       title: "Les élèves répondent.",
       text: "Cinq sondages dans le groupe de la classe. Depuis leur téléphone.",
-      pose: "point",
       chat: {
         kind: "group", name: "4ème B · Maths", sub: "29 membres",
         messages: [
@@ -62,7 +57,6 @@ const fr = {
     {
       title: "Le professeur reçoit le diagnostic.",
       text: "Pas une note : l'erreur dominante, et quoi refaire.",
-      pose: "ok",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -75,7 +69,6 @@ const fr = {
     {
       title: "Chaque élève revoit ses erreurs.",
       text: "Un message à ceux qui se sont trompés. Le tuteur fait le reste.",
-      pose: "cheer",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -107,12 +100,6 @@ const fr = {
       ["Pour la classe", "Une mémoire qui se construit seule : qui maîtrise quoi, cours après cours."],
     ],
   },
-  numbers: [
-    ["1", "mot à taper"],
-    ["5", "questions par cours"],
-    ["3", "lignes de rapport"],
-    ["0", "appli à installer"],
-  ],
   rules: {
     title: "Construit pour la classe, pas pour l'administration.",
     items: [
@@ -137,7 +124,6 @@ const fr = {
     title: "Un professeur, une classe, un cours. On essaie ?",
     text: "Écrivez-nous, on branche Le Petit Nicolas sur votre prochain cours en ligne.",
     cta: "Écrire à l'équipe",
-    bubble: "Je suis prêt quand vous voulez.",
   },
   footer: {
     team: "Construit en une journée à Paris par une équipe de quatre, pour les collèges qui n'ont pas d'assistant pédagogique.",
@@ -163,7 +149,6 @@ const en: typeof fr = {
   problem: {
     title: "One teacher, thirty students, zero assistants.",
     text: "After class, checking who understood takes time the teacher doesn't have. So it doesn't happen. Lost students don't raise their hand, and families who can afford it buy the difference in private tutoring.",
-    bubble: "What if I took care of it?",
   },
   story: {
     title: "How it works",
@@ -173,7 +158,6 @@ const en: typeof fr = {
     {
       title: "The class ends.",
       text: "Fathom has transcribed. The teacher receives the quiz.",
-      pose: "phone",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -187,7 +171,6 @@ const en: typeof fr = {
     {
       title: "Students answer.",
       text: "Five polls in the class group. From their phones.",
-      pose: "point",
       chat: {
         kind: "group", name: "4ème B · Maths", sub: "29 members",
         messages: [
@@ -199,7 +182,6 @@ const en: typeof fr = {
     {
       title: "The teacher gets the diagnosis.",
       text: "Not a score: the main error, and what to redo.",
-      pose: "ok",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -212,7 +194,6 @@ const en: typeof fr = {
     {
       title: "Each student reviews their mistakes.",
       text: "A message to those who got it wrong. The tutor does the rest.",
-      pose: "cheer",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -244,12 +225,6 @@ const en: typeof fr = {
       ["For the class", "A memory that builds itself: who masters what, lesson after lesson."],
     ],
   },
-  numbers: [
-    ["1", "word to type"],
-    ["5", "questions per lesson"],
-    ["3", "lines of report"],
-    ["0", "apps to install"],
-  ],
   rules: {
     title: "Built for the classroom, not for the administration.",
     items: [
@@ -274,7 +249,6 @@ const en: typeof fr = {
     title: "One teacher, one class, one lesson. Shall we try?",
     text: "Write to us and we'll plug Le Petit Nicolas into your next online class.",
     cta: "Write to the team",
-    bubble: "Ready when you are.",
   },
   footer: {
     team: "Built in one day in Paris by a team of four, for the schools that have no teaching assistant.",
