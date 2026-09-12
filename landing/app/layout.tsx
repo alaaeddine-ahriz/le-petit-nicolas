@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { Caveat, Nunito } from "next/font/google"
+import "devices.css/dist/devices.css"
 import "./globals.css"
 
 const hand = Caveat({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-hand" })
