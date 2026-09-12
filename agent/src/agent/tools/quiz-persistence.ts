@@ -1,9 +1,81 @@
 import { defineTool } from "@copilotkit/runtime/v2";
 import { z } from "zod";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { questionBuilderState } from "@/agent/state/question-builder-state";
+import { questionBuilderState, validateProposedQuestion, type QuestionOption } from "@/agent/state/question-builder-state";
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
+
+const questionOptionSchema = z.object({
+  text: z.string().min(1).describe("The answer text in French, using the teacher's notation"),
+  isCorrect: z.boolean().describe("True for the correct answer, false for all distractors"),
+  misconceptionId: z
+    .string()
+    .min(1)
+    .describe('Taxonomy ID this option encodes ("CORRECT" for the right answer, e.g. "FRAC-001" for a distractor)'),
+  misconceptionDescription: z
+    .string()
+    .min(1)
+    .describe('Short description of the cognitive error ("Correct answer" for the right one)'),
+});
+
+/**
+ * Combines what used to be two separate steps (propose_question, then
+ * save_quiz_to_supabase) into one tool that takes the full question content
+ * as parameters. This is a deliberate reliability fix: models — especially
+ * smaller ones — kept writing out a nicely formatted question in chat text
+ * without actually calling propose_question first, leaving nothing recorded
+ * anywhere. A single call that REQUIRES the question/options as arguments
+ * cannot be skipped that way — there is no "describe now, persist later"
+ * path anymore, because persisting IS providing the content.
+ */
+export const propose_and_save_quiz = defineTool({
+  name: "propose_and_save_quiz",
+  description:
+    "Build AND persist a French multiple-choice comprehension question in one step: writes it to shared state (so get_current_question/reject_question keep working) and immediately saves it to Supabase (concept + quiz + options). This is the ONLY way to create a quiz — always call this with the full question and options as soon as you've decided on them, in the same turn, BEFORE describing the question in chat text. Never draft a question in prose first and call this 'afterward' — chat text is just a human-readable echo of what this tool already recorded, never a substitute for calling it.",
+  parameters: z.object({
+    questionText: z.string().min(1).describe("The question text, in French"),
+    options: z
+      .array(questionOptionSchema)
+      .length(4)
+      .describe("Exactly 4 options: 1 correct + 3 distractors, each distractor mapping to a distinct misconception ID"),
+    conceptLabel: z
+      .string()
+      .min(1)
+      .describe("Short label identifying which discussion moment/concept this question covers"),
+    transcriptExcerpt: z
+      .string()
+      .min(1)
+      .describe("The transcript excerpt (or summary text) this question was built from, as plain text"),
+    exampleOrigin: z
+      .enum(["transcript", "synthesized"])
+      .describe("Whether the example was taken verbatim from the transcript or synthesized from the summary"),
+    fathomMeetingId: z
+      .string()
+      .optional()
+      .describe("The Fathom meeting id this transcript came from, if known (used to find the right lesson row)"),
+    lessonId: z
+      .string()
+      .optional()
+      .describe("The lessons.id directly, if already known (e.g. from list_lessons/get_lesson_transcript) — takes priority over fathomMeetingId"),
+  }),
+  execute: async ({ questionText, options, conceptLabel, transcriptExcerpt, exampleOrigin, fathomMeetingId, lessonId }) => {
+    validateProposedQuestion(options as QuestionOption[]);
+
+    questionBuilderState.proposedQuestion = {
+      questionText,
+      options: options as QuestionOption[],
+      conceptReference: { conceptName: conceptLabel, documentSection: null, offDocument: false },
+      sourceTranscript: [{ timestamp: new Date().toISOString(), text: transcriptExcerpt }],
+      generatedAt: new Date().toISOString(),
+      exampleOrigin,
+      regenerationCount: questionBuilderState.regenerationCount,
+      status: "proposed",
+    };
+
+    const saveResult = await saveCurrentQuestionToSupabase({ conceptLabel, transcriptExcerpt, fathomMeetingId, lessonId });
+    return { proposedQuestion: questionBuilderState.proposedQuestion, ...saveResult };
+  },
+});
 
 export const list_pending_quizzes = defineTool({
   name: "list_pending_quizzes",
@@ -149,38 +221,34 @@ export const get_lesson_transcript = defineTool({
   },
 });
 
-export const save_quiz_to_supabase = defineTool({
-  name: "save_quiz_to_supabase",
-  description:
-    "Persist the current proposed question to Supabase (as a concept + quiz + options), so it can be tracked and its answers analyzed later. Call this after propose_question and before sendPollToClass.",
-  parameters: z.object({
-    conceptLabel: z
-      .string()
-      .min(1)
-      .describe("Short label identifying which discussion moment/concept this question covers"),
-    transcriptExcerpt: z
-      .string()
-      .min(1)
-      .describe("The transcript excerpt (or summary text) this question was built from, as plain text"),
-    fathomMeetingId: z
-      .string()
-      .optional()
-      .describe("The Fathom meeting id this transcript came from, if known (used to find the right lesson row)"),
-    lessonId: z
-      .string()
-      .optional()
-      .describe("The lessons.id directly, if already known (e.g. from list_lessons/get_lesson_transcript) — takes priority over fathomMeetingId"),
-  }),
-  execute: async ({ conceptLabel, transcriptExcerpt, fathomMeetingId, lessonId }) => {
-    const proposed = questionBuilderState.proposedQuestion;
-    if (!proposed) {
-      return { ok: false, error: "There is no proposed question in state to save" };
-    }
-    if (proposed.options.length !== 4) {
-      return { ok: false, error: `Expected exactly 4 options, found ${proposed.options.length}` };
-    }
+interface SaveResult {
+  ok: boolean;
+  error?: string;
+  quizId?: string;
+  optionIds?: string[];
+}
 
-    const supabase = createAdminClient();
+/**
+ * The actual Supabase persistence, shared by propose_and_save_quiz (the
+ * normal path) and the legacy save_quiz_to_supabase tool below (kept for
+ * anything still calling it directly, but no longer registered on the agent).
+ */
+async function saveCurrentQuestionToSupabase(input: {
+  conceptLabel: string;
+  transcriptExcerpt: string;
+  fathomMeetingId?: string;
+  lessonId?: string;
+}): Promise<SaveResult> {
+  const { conceptLabel, transcriptExcerpt, fathomMeetingId, lessonId } = input;
+  const proposed = questionBuilderState.proposedQuestion;
+  if (!proposed) {
+    return { ok: false, error: "There is no proposed question in state to save" };
+  }
+  if (proposed.options.length !== 4) {
+    return { ok: false, error: `Expected exactly 4 options, found ${proposed.options.length}` };
+  }
+
+  const supabase = createAdminClient();
 
     let resolvedLessonId = lessonId;
     if (!resolvedLessonId) {
@@ -259,12 +327,24 @@ export const save_quiz_to_supabase = defineTool({
       (label) => insertedOptions.find((row) => row.label === label)?.id as string,
     );
 
-    return {
-      ok: true,
-      quizId: quiz.id as string,
-      optionIds,
-    };
-  },
+  return {
+    ok: true,
+    quizId: quiz.id as string,
+    optionIds,
+  };
+}
+
+/** @deprecated Not registered on the agent anymore — use propose_and_save_quiz instead, which cannot be called without also supplying the question content. */
+export const save_quiz_to_supabase = defineTool({
+  name: "save_quiz_to_supabase",
+  description: "Deprecated — use propose_and_save_quiz instead.",
+  parameters: z.object({
+    conceptLabel: z.string().min(1),
+    transcriptExcerpt: z.string().min(1),
+    fathomMeetingId: z.string().optional(),
+    lessonId: z.string().optional(),
+  }),
+  execute: async (input) => saveCurrentQuestionToSupabase(input),
 });
 
 export interface StudentQuizResult {

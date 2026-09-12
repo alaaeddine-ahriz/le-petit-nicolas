@@ -3,6 +3,7 @@ import { agent } from "@/agent";
 import { insightsAgent } from "@/agent/insights";
 import { lessonTrackerAgent } from "@/agent/lesson-tracker";
 import { questionBuilderAgent } from "@/agent/question-builder";
+import { studentHelperAgent } from "@/agent/student-helper";
 import { telegramChannel } from "@/telegram";
 
 const agents = {
@@ -10,6 +11,7 @@ const agents = {
   lessonTracker: lessonTrackerAgent,
   insights: insightsAgent,
   mathQuiz: questionBuilderAgent,
+  studentHelper: studentHelperAgent,
 };
 
 const intelligenceApiKey =

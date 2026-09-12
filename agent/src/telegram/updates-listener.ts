@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { sendMessage, editMessage, toTelegramMarkdown } from "@/agent/tools/telegram";
-import { resolvePoll } from "@data/repository";
+import { resolvePoll, identifyTelegramUser } from "@data/repository";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 const TELEGRAM_MESSAGE_LIMIT = 4096;
@@ -143,6 +143,14 @@ export async function handlePollAnswer(pollAnswer: NonNullable<TelegramUpdate["p
   }
 }
 
+/**
+ * Routes an incoming message by the sender's role (teachers/students table,
+ * via identifyTelegramUser) so this single listener can serve both — the
+ * teacher's mathQuiz conversation (build/send/stats) and a student's free-form
+ * questions about the lesson (studentHelper) — without depending on
+ * CopilotKit's Telegram channel, which has no such role split and would
+ * otherwise compete with this listener for the same getUpdates queue anyway.
+ */
 async function handleMessage(
   botToken: string,
   message: NonNullable<TelegramUpdate["message"]>,
@@ -151,19 +159,19 @@ async function handleMessage(
   const senderId = message.from?.id;
   if (!text || !senderId) return;
 
-  const supabase = createAdminClient();
-  const { data: teacher, error } = await supabase
-    .from("teachers")
-    .select("id")
-    .eq("telegram_user_id", senderId)
-    .maybeSingle();
-
-  if (error || !teacher) {
-    return; // Not a recognized teacher — stay silent, don't reveal this command/bot exists.
+  const identity = await identifyTelegramUser(senderId);
+  if (!identity) {
+    return; // Not onboarded (no matching teachers/students row) — stay silent.
   }
 
   const chatId = message.chat.id;
 
+  if (identity.role === "student") {
+    await forwardToAgent(botToken, chatId, "studentHelper", `telegram-student-${chatId}`, text);
+    return;
+  }
+
+  // Teacher.
   if (/^\/teacher\b/i.test(text)) {
     teacherModeChats.add(chatId);
     await sendMessage(botToken, chatId, "🎓 Teacher mode activated.");
@@ -176,22 +184,28 @@ async function handleMessage(
     return;
   }
 
-  await forwardToMathQuizAgent(botToken, chatId, text);
+  await forwardToAgent(botToken, chatId, "mathQuiz", `telegram-teacher-${chatId}`, text);
 }
 
 /**
- * Forwards a teacher's chat message to the mathQuiz agent as one conversation
- * turn, over the same AG-UI HTTP endpoint CopilotChat itself uses
- * (/api/copilotkit/agent/mathQuiz/run), and relays the assistant's final text
- * reply back to Telegram. threadId is stable per Telegram chat so the agent's
- * own server-side thread state (pending proposed question, etc.) carries
- * across messages within this server's lifetime.
+ * Forwards a chat message to the given agent as one conversation turn, over
+ * the same AG-UI HTTP endpoint CopilotChat itself uses
+ * (/api/copilotkit/agent/<agentId>/run), and relays the assistant's final text
+ * reply back to Telegram. threadId is stable per (agent, chat) pair so the
+ * agent's own server-side thread state carries across messages within this
+ * server's lifetime.
  */
 const EDIT_THROTTLE_MS = 600;
 
-async function forwardToMathQuizAgent(botToken: string, chatId: number, text: string): Promise<void> {
+async function forwardToAgent(
+  botToken: string,
+  chatId: number,
+  agentId: string,
+  threadId: string,
+  text: string,
+): Promise<void> {
   const port = process.env.PORT ?? "3000";
-  const url = `http://localhost:${port}/api/copilotkit/agent/mathQuiz/run`;
+  const url = `http://localhost:${port}/api/copilotkit/agent/${agentId}/run`;
 
   const placeholderId = await sendMessage(botToken, chatId, "⏳ Working on it...");
 
@@ -200,7 +214,7 @@ async function forwardToMathQuizAgent(botToken: string, chatId: number, text: st
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        threadId: `telegram-teacher-${chatId}`,
+        threadId,
         runId: randomUUID(),
         state: {},
         messages: [{ id: randomUUID(), role: "user", content: text }],
@@ -211,24 +225,24 @@ async function forwardToMathQuizAgent(botToken: string, chatId: number, text: st
     });
 
     if (!response.ok || !response.body) {
-      console.error(`mathQuiz agent request failed: HTTP ${response.status}`);
+      console.error(`${agentId} agent request failed: HTTP ${response.status}`);
       await finalizePlaceholder(
         botToken,
         chatId,
         placeholderId,
-        "Sorry, I couldn't reach the quiz agent just now — try again in a moment.",
+        "Sorry, I couldn't reach the agent just now — try again in a moment.",
       );
       return;
     }
 
     await streamAgentReplyToTelegram(botToken, chatId, placeholderId, response);
   } catch (err) {
-    console.error("Failed to forward message to mathQuiz agent:", err);
+    console.error(`Failed to forward message to ${agentId} agent:`, err);
     await finalizePlaceholder(
       botToken,
       chatId,
       placeholderId,
-      "Sorry, something went wrong reaching the quiz agent — try again in a moment.",
+      "Sorry, something went wrong reaching the agent — try again in a moment.",
     );
   }
 }
