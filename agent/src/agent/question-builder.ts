@@ -124,7 +124,7 @@ Each quiz's result also includes a \`studentBreakdown\` (per student: whether th
 Concise and factual. When you propose a question, show it clearly (question + all 4 options) without revealing which one is correct to a student-facing audience - but the teacher reviewing it should see the correct answer and each distractor's misconception marked, so they can judge quality before approving.`;
 
 export const questionBuilderAgent = new BuiltInAgent({
-  model: process.env.LLM_MODEL ?? "openai/inclusionai/ling-3.0-flash-vl:free",
+  model: process.env.LLM_MODEL ?? process.env.OPENAI_MODEL ?? "openai:gpt-4.1-mini",
   maxSteps: 100,
   prompt: QUESTION_BUILDER_PROMPT,
   tools: [
