@@ -20,6 +20,37 @@ Supabase Realtime from the browser — live teacher UI updates stream through
 CopilotKit instead. Don't "fix" this by disabling RLS: the publishable key
 ships in the browser bundle, so an open table exposes every student's record.
 
+## Repository API
+
+Don't write raw queries — `data/src/repository.ts` has typed functions for the
+whole flow, and they work whether the transcript came from a live stream or a
+Fathom batch. From `agent/`, import via the `@data/*` alias:
+
+```ts
+import { startLesson, saveConcept, saveQuiz, markQuizSent,
+         recordAnswer, getQuizResults, completeIntervention } from "@data/repository";
+
+const lessonId = await startLesson({ classId, teacherId, title });
+const conceptId = await saveConcept(lessonId, { label, transcriptExcerpt });
+const { quizId, optionIds } = await saveQuiz(conceptId, { question, options });
+await markQuizSent(quizId, 60);                       // after it goes out
+await recordAnswer({ quizId, studentId, optionId: optionIds["B"] });
+
+const results = await getQuizResults(quizId);
+// → { totalAnswers, correctCount, dominant: { misconceptionLabel, count, studentIds } }
+
+await completeIntervention({ conceptId, quizId, suggestedIntervention });
+// ↑ the [DONE] tap: writes the intervention AND folds the quiz into every
+//   answering student's profile. Skip it and the per-student memory never builds.
+```
+
+Telegram `/start`: `identifyTelegramUser(telegramUserId)` returns
+`{ role: "student" | "teacher", id, firstName }` or null; then `claimStudent`
+/ `claimTeacher` links the account. `listUnclaimedStudents(classId)` gives the
+names to offer, `listReachableStudents(classId)` is who a quiz can reach.
+
+Teacher chat queries `getStudentProfile(studentId)`.
+
 ## The one design idea worth knowing
 
 Two layers, because a score is not a memory:
