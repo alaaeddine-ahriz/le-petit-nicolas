@@ -1,37 +1,22 @@
 # Le Petit Nicolas
 
-Next.js app that runs a **CopilotKit** built-in agent in the browser, with Exa tools for web search and URL extraction.
+One folder per component, one owner per folder. Stay in yours.
 
-```
-this Next.js process
-├── src/runtime   CopilotRuntime (SSE, in-process threads)
-├── src/agent     Built-in agent + Exa tools
-└── src/app       CopilotChat UI + /api/copilotkit
-```
+| Folder   | What                                                                    | Owner |
+|----------|-------------------------------------------------------------------------|-------|
+| `agent/` | The agent: runtime, tools, and its chat UI. Self-contained Next.js app. | 4     |
+| `app/`   | Teacher web console.                                                    | 4     |
+| `brain/` | Claude functions: checks, answer analysis, quiz, notes.                 | 2     |
+| `io/`    | Telegram channel, phone mic, transcript ingest.                         | 1     |
+| `data/`  | Supabase schema, repositories, Auth0.                                   | 3     |
 
-## Requirements
-
-- Node.js 22+
-- OpenAI API key
-- Exa API key ([dashboard.exa.ai](https://dashboard.exa.ai))
-
-## Setup
+## Run the agent
 
 ```bash
+cd agent
 cp .env.example .env
-# fill OPENAI_API_KEY and EXA_API_KEY
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and ask something current so the agent uses Exa search.
-
-## Project layout
-
-| File | Role |
-| --- | --- |
-| `src/agent/` | Built-in CopilotKit agent + Exa tools |
-| `src/runtime/` | CopilotRuntime |
-| `src/app/` | Next.js frontend (`CopilotChat`) |
-| `src/app/api/copilotkit/` | Runtime HTTP endpoint |
-| `.env` | Secrets (not committed) |
+See [agent/README.md](agent/README.md).
