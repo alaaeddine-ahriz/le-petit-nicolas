@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { pollRegistry, sendMessage } from "@/agent/tools/telegram";
+import { sendMessage } from "@/agent/tools/telegram";
+import { resolvePoll } from "@data/repository";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 const TELEGRAM_MESSAGE_LIMIT = 4096;
@@ -101,13 +102,12 @@ async function pollLoop(botToken: string): Promise<void> {
 }
 
 async function handlePollAnswer(pollAnswer: NonNullable<TelegramUpdate["poll_answer"]>): Promise<void> {
-  const mapping = pollRegistry.get(pollAnswer.poll_id);
+  // Looked up in quiz_poll_sends (Supabase) rather than process memory, so
+  // answers to polls sent before a dev-server reload still resolve.
+  const mapping = await resolvePoll(pollAnswer.poll_id);
   if (!mapping) {
-    return; // Poll from a previous server run, or not one of ours — nothing to record against.
+    return; // Not one of ours — nothing to record against.
   }
-
-  const telegramUserId = pollAnswer.user?.id;
-  if (!telegramUserId) return;
 
   const chosenIndex = pollAnswer.option_ids[0];
   if (chosenIndex === undefined) {
@@ -122,22 +122,11 @@ async function handlePollAnswer(pollAnswer: NonNullable<TelegramUpdate["poll_ans
 
   const supabase = createAdminClient();
 
-  const { data: student, error: studentError } = await supabase
-    .from("students")
-    .select("id")
-    .eq("telegram_user_id", telegramUserId)
-    .maybeSingle();
-
-  if (studentError || !student) {
-    console.warn(`Poll answer from unknown telegram user ${telegramUserId} — no matching student row`);
-    return;
-  }
-
   const { data: existing } = await supabase
     .from("quiz_answers")
     .select("id")
     .eq("quiz_id", mapping.quizId)
-    .eq("student_id", student.id)
+    .eq("student_id", mapping.studentId)
     .maybeSingle();
 
   const answeredAt = new Date().toISOString();
@@ -150,7 +139,7 @@ async function handlePollAnswer(pollAnswer: NonNullable<TelegramUpdate["poll_ans
   } else {
     await supabase.from("quiz_answers").insert({
       quiz_id: mapping.quizId,
-      student_id: student.id,
+      student_id: mapping.studentId,
       option_id: optionId,
       answered_at: answeredAt,
     });
