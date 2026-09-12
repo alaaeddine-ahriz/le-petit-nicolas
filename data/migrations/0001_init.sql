@@ -153,7 +153,7 @@ create index on student_concept_profile (student_id);
 -- and write nothing, and every access goes through the server with the service
 -- role key (which bypasses RLS). Supabase enables this automatically on new
 -- tables — stated explicitly here so this file matches the live database.
--- See SCHEMA.md "Access model" before adding policies or turning this off.
+-- See README.md before adding policies or turning this off.
 
 alter table teachers                 enable row level security;
 alter table classes                  enable row level security;

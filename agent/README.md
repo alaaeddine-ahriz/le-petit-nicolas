@@ -30,9 +30,8 @@ Supabase vars go in `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`,
 
 ## Talking to Supabase
 
-RLS is enabled on every table with no policies, so **the publishable key can't
-read or write anything** — reads come back empty with no error. Use the service
-role client, server-side only:
+The publishable key can't read or write anything (RLS) — use the service role
+client, server-side only:
 
 ```ts
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -41,9 +40,7 @@ const supabase = createAdminClient();
 const { data } = await supabase.from("students").select();
 ```
 
-`utils/supabase/server.ts` and `client.ts` (publishable key) are wired up for
-when auth-scoped policies exist, but they're not usable for data access yet.
-See [`../data/SCHEMA.md`](../data/SCHEMA.md).
+Why, and the schema itself: [`../data/README.md`](../data/README.md).
 
 Open [http://localhost:3000](http://localhost:3000) and ask something current so the agent uses Exa search.
 

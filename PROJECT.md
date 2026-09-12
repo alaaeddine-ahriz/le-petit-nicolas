@@ -50,7 +50,7 @@ This isn't a convention we hope holds. Every class-facing action is gated by Aut
 Lecture-capture tools stop at the transcript and a summary. The product here is what happens *after* that transcript exists: distractors engineered to encode specific student errors, a diagnosis of the class's dominant misconception (not just a score), and delivery on the channel every student already has open — their own phone, one-on-one, no app to install. Take away that layer and this is a generic meeting-notes tool; the value is entirely in what the agent does with the transcript in the minutes after class.
 
 ### How it's built
-- **Telegram (grammY)** — the student layer. Each student has a private 1:1 chat with the bot (onboarded once via `/start`); quizzes are sent individually and answers are aggregated server-side. Zero install.
+- **Telegram (CopilotKit channel)** — the student layer. Each student has a private 1:1 chat with the bot (onboarded once via `/start`); quizzes are sent individually and answers are aggregated server-side. Zero install.
 - **CopilotKit** — the teacher console. Live lesson state streamed into the UI, human-in-the-loop approval, the hint rendered as actionable generative UI, and natural-language chat with class memory after the lesson.
 - **Auth0** — identity and the approval gate. Universal Login over student data; async authorization (CIBA) on every action that reaches the class.
 - **Exa** — grounding in the world: a sourced *« Saviez-vous que… »* tied to the current concept, and a remediation resource matched to the misconception actually detected.
@@ -68,9 +68,9 @@ Built and demoed in French for a French collège. Designed to run on the phone e
 
 ## Social post
 
-> We built **Le Petit Nicolas**: an AI teaching assistant that sits in the classroom and in the class group chat.
+> We built **Le Petit Nicolas**: an AI teaching assistant that follows the lesson and then talks to each student privately.
 >
-> It listens to the lesson, and when the teacher taps once, it asks the class a question built from what was *just said*. Sixty seconds later the teacher knows exactly what to re-explain — not a score, the actual misconception.
+> It reads the lesson transcript, and when the teacher taps once, it asks every student a question built from what was *actually taught*. Sixty seconds later the teacher knows exactly what to re-explain — not a score, the actual misconception.
 >
 > The teacher never types anything. The agent never acts alone.
 >
@@ -123,11 +123,7 @@ Conséquences :
 - ⚠️ **Reste en tension non résolue** : la conclusion de la description ("every class gets a teaching assistant, for the price of a phone on the desk", + le paragraphe Casablanca/Dakar/Abidjan) suppose un simple téléphone. Avec Google Meet, il faut un ordinateur + connexion correcte côté prof — à retravailler ou assumer explicitement dans la version finale du pitch.
 
 ### Décision archi : accès Supabase côté serveur uniquement
-RLS est activé sur les 12 tables **sans aucune policy**. Donc la publishable key ne peut ni lire (retourne vide, sans erreur) ni écrire (`42501`) — seule la `SUPABASE_SERVICE_ROLE_KEY` passe, côté serveur.
-
-C'est un choix assumé : rien dans l'archi n'a besoin d'accès DB depuis le navigateur (ingestion Fathom, génération de quiz, bot Telegram et runtime CopilotKit sont tous côté serveur), donc on a la sécurité gratuitement plutôt que de câbler les JWT Auth0 dans des policies RLS pendant un hackathon. Seule contrainte : pas de Supabase Realtime depuis le front — les mises à jour live de l'UI prof passent par le stream CopilotKit.
-
-Ne pas "corriger" ça en désactivant RLS : la publishable key est embarquée dans le bundle JS, donc table ouverte = dossier de n'importe quel élève lisible par n'importe qui. Détails dans [data/SCHEMA.md](data/SCHEMA.md).
+RLS activé sur les 12 tables sans policy : seule la `SUPABASE_SERVICE_ROLE_KEY` peut lire/écrire, côté serveur. Choix assumé — rien dans l'archi n'a besoin d'accès DB depuis le navigateur, donc on évite de câbler les JWT Auth0 dans des policies pendant un hackathon. Détails et pièges dans [data/README.md](data/README.md).
 
 ## TODO / à décider
 - [ ] Comment lier le `/start` Telegram d'un prof à son compte `teachers` existant (créé via Auth0) — à trancher avec `io/`.
@@ -136,4 +132,4 @@ Ne pas "corriger" ça en désactivant RLS : la publishable key est embarquée da
 - [ ] Préparer les slides / la vidéo de démo.
 
 ## Schéma Supabase
-Voir [data/SCHEMA.md](data/SCHEMA.md) et [data/migrations/0001_init.sql](data/migrations/0001_init.sql) — schéma **appliqué en base** (12 tables : raw layer + `student_concept_profile` distillé, qui implémente la "mémoire par élève"). Domaine possédé par `data/` (Supabase + Auth0) selon la convention du repo — voir [README.md](README.md).
+Voir [data/README.md](data/README.md) et [data/migrations/0001_init.sql](data/migrations/0001_init.sql) — schéma **appliqué en base** (12 tables : raw layer + `student_concept_profile` distillé, qui implémente la "mémoire par élève"). Domaine possédé par `data/` (Supabase + Auth0) selon la convention du repo — voir [README.md](README.md).
