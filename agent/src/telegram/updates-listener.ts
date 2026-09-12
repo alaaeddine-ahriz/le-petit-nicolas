@@ -167,7 +167,10 @@ async function handleMessage(
   const chatId = message.chat.id;
 
   if (identity.role === "student") {
-    await forwardToAgent(botToken, chatId, "studentHelper", `telegram-student-${chatId}`, text);
+    // Agent tools never see who is speaking, so the id travels in the turn —
+    // explain_my_answer needs it to find which quiz this student answered.
+    const withIdentity = `[telegramUserId=${senderId}] ${text}`;
+    await forwardToAgent(botToken, chatId, "studentHelper", `telegram-student-${chatId}`, withIdentity);
     return;
   }
 
