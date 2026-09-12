@@ -51,6 +51,14 @@ async function findClassIdForQuiz(quizId: string): Promise<string | null> {
  */
 export const pollRegistry = new Map<string, { quizId: string; optionIds: string[] }>();
 
+export async function sendMessage(botToken: string, chatId: number, text: string): Promise<void> {
+  await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  });
+}
+
 async function sendPollToChat(
   botToken: string,
   chatId: number,
@@ -186,6 +194,11 @@ export const sendPollToClass = defineTool({
     }
 
     const sentCount = results.filter((r) => r.ok).length;
+
+    if (sentCount > 0) {
+      await supabase.from("quizzes").update({ sent_at: new Date().toISOString() }).eq("id", quizId);
+    }
+
     return {
       ok: sentCount > 0,
       sentCount,

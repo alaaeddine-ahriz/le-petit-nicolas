@@ -10,8 +10,8 @@
 // Kept as plain functions rather than agent tools so `io/` and `brain/` can call
 // them too.
 
-import { db } from "./client.js";
-import type { TelegramIdentity } from "./types.js";
+import { db } from "./client";
+import type { TelegramIdentity } from "./types";
 
 function fail(context: string, error: { message: string } | null): never {
   throw new Error(`${context}: ${error?.message ?? "unknown error"}`);
