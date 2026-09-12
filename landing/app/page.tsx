@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useInView } from "react-intersection-observer"
 import { Avatar } from "@/components/Avatar"
 import { Phone } from "@/components/Phone"
@@ -11,12 +11,18 @@ const DEMO_VIDEO = ""
 const CONTACT = ""   // e.g. "mailto:team@example.com"
 const GITHUB = "https://github.com/alaaeddine-ahriz/le-petit-nicolas"
 
+// Fades and lifts its children in the first time they scroll into view.
+function Reveal({ children, className }: { children: ReactNode; className?: string }) {
+  const { ref, inView } = useInView({ threshold: 0.15, triggerOnce: true })
+  return <div ref={ref} className={["reveal", inView ? "in" : "", className].filter(Boolean).join(" ")}>{children}</div>
+}
+
 // One step of the story. Reports itself as active when it crosses the middle of the viewport.
-function SceneBlock({ scene, index, onActive }: { scene: Scene; index: number; onActive: (i: number) => void }) {
+function SceneBlock({ scene, index, active, onActive }: { scene: Scene; index: number; active: boolean; onActive: (i: number) => void }) {
   const { ref, inView } = useInView({ rootMargin: "-40% 0px -40% 0px" })
   useEffect(() => { if (inView) onActive(index) }, [inView, index, onActive])
   return (
-    <div className="scene" ref={ref}>
+    <div className={active ? "scene active" : "scene"} ref={ref}>
       <span className="scene-n">{index + 1}</span>
       <h3>{scene.title}</h3>
       <p>{scene.text}</p>
@@ -67,44 +73,48 @@ export default function Page() {
       </header>
 
       <main id="top">
-        {/* 1. Hero */}
+        {/* 1. Hero: staggered entrance on load */}
         <section className="wrap hero">
           <div>
-            <span className="eyebrow">{t.hero.eyebrow}</span>
-            <h1>
+            <span className="eyebrow rise" style={{ animationDelay: "0ms" }}>{t.hero.eyebrow}</span>
+            <h1 className="rise" style={{ animationDelay: "80ms" }}>
               {t.hero.title.before}
-              <mark>{t.hero.title.highlight}</mark>
+              <mark className="hand">{t.hero.title.highlight}</mark>
               {t.hero.title.after}
             </h1>
-            <p className="lead">{t.hero.lead}</p>
-            <div className="cta">
+            <p className="lead rise" style={{ animationDelay: "160ms" }}>{t.hero.lead}</p>
+            <div className="cta rise" style={{ animationDelay: "240ms" }}>
               <a className="btn primary" href="#demo">{t.hero.cta}</a>
               <a className="link" href="#story">{t.hero.secondary}</a>
             </div>
-            <ul className="trust">
+            <ul className="trust rise" style={{ animationDelay: "320ms" }}>
               {t.hero.trust.map((s) => <li key={s}>{s}</li>)}
             </ul>
           </div>
-          <div className="mascot-stage">
-            <div className="bubble">{t.hero.bubble}</div>
+          <div className="mascot-stage rise" style={{ animationDelay: "200ms" }}>
+            <div className="bubble hand pop">{t.hero.bubble}</div>
             <Avatar size={340} className="mascot" />
           </div>
         </section>
 
         {/* 2. The problem */}
         <section className="wrap narrow">
-          <h2>{t.problem.title}</h2>
-          <p>{t.problem.text}</p>
+          <Reveal>
+            <h2>{t.problem.title}</h2>
+            <p>{t.problem.text}</p>
+          </Reveal>
         </section>
 
         {/* 3. How it works: the phone follows the scroll */}
         <section className="band" id="story">
           <div className="wrap">
-            <h2>{t.story.title}</h2>
-            <p className="mute">{t.story.text}</p>
+            <Reveal>
+              <h2>{t.story.title}</h2>
+              <p className="mute">{t.story.text}</p>
+            </Reveal>
             <div className="story">
               <div className="scenes">
-                {t.scenes.map((s, i) => <SceneBlock scene={s} index={i} onActive={setActive} key={i} />)}
+                {t.scenes.map((s, i) => <SceneBlock scene={s} index={i} active={i === active} onActive={setActive} key={i} />)}
               </div>
               <div className="sticky">
                 <Phone chat={t.scenes[active].chat} sceneKey={active} />
@@ -115,37 +125,41 @@ export default function Page() {
 
         {/* 4. The differentiator */}
         <section className="wrap trick">
-          <div>
+          <Reveal>
             <h2>{t.trick.title}</h2>
             <p>{t.trick.text}</p>
-          </div>
-          <div className="card">
-            <div className="card-q">{t.trick.question}</div>
-            <table>
-              <tbody>
-                {t.trick.rows.map(([opt, note], i) => {
-                  const ok = i === t.trick.rows.length - 1
-                  return (
-                    <tr key={opt} className={ok ? "ok" : ""}>
-                      <td>{opt}</td>
-                      <td className="annot">{ok ? "✓ " : "→ "}{note}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          </Reveal>
+          <Reveal className="delay">
+            <div className="card">
+              <div className="card-q">{t.trick.question}</div>
+              <table>
+                <tbody>
+                  {t.trick.rows.map(([opt, note], i) => {
+                    const ok = i === t.trick.rows.length - 1
+                    return (
+                      <tr key={opt} className={ok ? "ok" : ""}>
+                        <td>{opt}</td>
+                        <td className="annot hand">{ok ? "✓ " : "← "}{note}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Reveal>
         </section>
 
         {/* 5. Benefits */}
         <section className="wrap">
-          <h2>{t.benefits.title}</h2>
+          <Reveal><h2>{t.benefits.title}</h2></Reveal>
           <div className="grid">
-            {t.benefits.items.map(([title, text]) => (
-              <article className="card" key={title}>
-                <h3>{title}</h3>
-                <p>{text}</p>
-              </article>
+            {t.benefits.items.map(([title, text], i) => (
+              <Reveal key={title} className={i === 1 ? "delay" : i === 2 ? "delay-2" : ""}>
+                <article className="card">
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </article>
+              </Reveal>
             ))}
           </div>
         </section>
@@ -153,13 +167,15 @@ export default function Page() {
         {/* 6. Trust */}
         <section className="band">
           <div className="wrap">
-            <h2>{t.rules.title}</h2>
+            <Reveal><h2>{t.rules.title}</h2></Reveal>
             <div className="rules">
-              {t.rules.items.map(([title, text]) => (
-                <div className="rule" key={title}>
-                  <strong>{title}</strong>
-                  <span className="mute">{text}</span>
-                </div>
+              {t.rules.items.map(([title, text], i) => (
+                <Reveal key={title} className={i % 2 ? "delay" : ""}>
+                  <div className="rule">
+                    <strong>{title}</strong>
+                    <span className="mute">{text}</span>
+                  </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -167,37 +183,43 @@ export default function Page() {
 
         {/* 7. FAQ */}
         <section className="wrap faq">
-          <h2>{t.faq.title}</h2>
-          {t.faq.items.map(([q, a]) => (
-            <details key={q}>
-              <summary>{q}</summary>
-              <p>{a}</p>
-            </details>
-          ))}
+          <Reveal>
+            <h2>{t.faq.title}</h2>
+            {t.faq.items.map(([q, a]) => (
+              <details key={q}>
+                <summary>{q}</summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </Reveal>
         </section>
 
         {/* 8. Demo */}
         <section className="wrap" id="demo">
-          <h2>{t.demo.title}</h2>
-          <p className="mute">{t.demo.text}</p>
-          <div className="video">
-            {DEMO_VIDEO ? (
-              <iframe src={DEMO_VIDEO} title={t.demo.title} allow="autoplay; fullscreen" allowFullScreen />
-            ) : (
-              <div className="placeholder">{t.demo.placeholder}</div>
-            )}
-          </div>
-          <p style={{ marginTop: 16 }}><a className="link" href={GITHUB}>{t.demo.code} →</a></p>
+          <Reveal>
+            <h2>{t.demo.title}</h2>
+            <p className="mute">{t.demo.text}</p>
+            <div className="video">
+              {DEMO_VIDEO ? (
+                <iframe src={DEMO_VIDEO} title={t.demo.title} allow="autoplay; fullscreen" allowFullScreen />
+              ) : (
+                <div className="placeholder hand">{t.demo.placeholder}</div>
+              )}
+            </div>
+            <p style={{ marginTop: 16 }}><a className="link" href={GITHUB}>{t.demo.code} →</a></p>
+          </Reveal>
         </section>
 
         {/* 9. Final call to action */}
         <section className="wrap narrow">
-          <h2>{t.final.title}</h2>
-          <p>{t.final.text}</p>
-          <div className="cta">
-            {CONTACT && <a className="btn primary" href={CONTACT}>{t.final.cta}</a>}
-            <a className="btn" href="#demo">{t.hero.cta}</a>
-          </div>
+          <Reveal>
+            <h2>{t.final.title}</h2>
+            <p>{t.final.text}</p>
+            <div className="cta">
+              {CONTACT && <a className="btn primary" href={CONTACT}>{t.final.cta}</a>}
+              <a className="btn" href="#demo">{t.hero.cta}</a>
+            </div>
+          </Reveal>
         </section>
       </main>
 
@@ -205,9 +227,7 @@ export default function Page() {
         <div className="wrap">
           <p>{t.footer.team}</p>
           <p className="mute small">
-            {t.footer.stack} · <a href={GITHUB}>{t.footer.code}</a>
-            <br />
-            {t.footer.avatar}
+            <a href={GITHUB}>{t.footer.code}</a> · {t.footer.avatar}
           </p>
         </div>
       </footer>

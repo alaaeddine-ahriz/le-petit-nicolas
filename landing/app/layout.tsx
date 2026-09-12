@@ -1,10 +1,11 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
-import { DM_Sans } from "next/font/google"
+import { Caveat, DM_Sans } from "next/font/google"
 import "devices.css/dist/devices.css"
 import "./globals.css"
 
 const font = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" })
+const hand = Caveat({ subsets: ["latin"], weight: ["500", "700"], variable: "--font-hand" })
 
 export const metadata: Metadata = {
   title: "Le Petit Nicolas — Le suivi du cours s'écrit tout seul",
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr" className={font.variable}>
+    <html lang="fr" className={`${font.variable} ${hand.variable}`}>
       <body>{children}</body>
     </html>
   )

@@ -1,4 +1,5 @@
 // A phone showing one Telegram conversation. Frame from devices.css (MIT); the chat inside is ours.
+import type { CSSProperties } from "react"
 import { Avatar } from "@/components/Avatar"
 import type { Chat, Poll } from "@/content"
 
@@ -44,10 +45,11 @@ export function Phone({ chat, sceneKey, className }: { chat: Chat; sceneKey: num
                   <small>{chat.sub}</small>
                 </span>
               </div>
+              {/* keyed on the scene so the messages replay their entrance when the conversation changes */}
               <div className="tg-body" key={sceneKey}>
                 {chat.messages.map((m, i) => (
-                  <div className={m.from === "me" ? "tg-m out" : "tg-m in"} key={i}>
-                    {chat.kind === "group" && m.from === "bot" && <div className="tg-sender">{chat.name.includes("·") ? "Le Petit Nicolas" : chat.name}</div>}
+                  <div className={m.from === "me" ? "tg-m out" : "tg-m in"} key={i} style={{ "--i": i } as CSSProperties}>
+                    {chat.kind === "group" && m.from === "bot" && <div className="tg-sender">Le Petit Nicolas</div>}
                     {m.poll ? <PollCard poll={m.poll} /> : <span className="tg-text">{m.text}</span>}
                     <span className="tg-time">{m.time}{m.from === "me" ? " ✓✓" : ""}</span>
                   </div>

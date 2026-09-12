@@ -32,7 +32,7 @@ const fr = {
   scenes: [
     {
       title: "Le cours se termine.",
-      text: "Fathom a transcrit. Le professeur reçoit le quiz.",
+      text: "Le cours est transcrit. Le professeur reçoit le quiz.",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -104,7 +104,7 @@ const fr = {
     title: "Construit pour la classe, pas pour l'administration.",
     items: [
       ["Le professeur dirige.", "L'agent propose, le professeur approuve. Rien n'arrive aux élèves sans son « ok »."],
-      ["Seul le cours est enregistré.", "Fathom transcrit la visio ; on garde le texte, pas l'audio. Pas de caméra, pas de voix d'élève."],
+      ["Seul le cours est enregistré.", "La visio est transcrite ; on garde le texte, pas l'audio. Pas de caméra, pas de voix d'élève."],
       ["Le rapport va au professeur.", "Jamais à l'administration. Jamais une note sur le professeur."],
       ["Les élèves n'installent rien.", "Telegram, qu'ils ont déjà. Des sondages dans le groupe, un message privé pour le tutorat."],
     ],
@@ -113,7 +113,7 @@ const fr = {
     title: "Questions fréquentes",
     items: [
       ["Et si le cours est en présentiel ?", "Aujourd'hui, Le Petit Nicolas rejoint les cours en visio (Zoom, Meet, Teams). La version « téléphone posé sur le bureau » est la prochaine étape."],
-      ["Que devient l'enregistrement ?", "Fathom transcrit, on garde le texte du cours, jamais l'audio. Aucune voix d'élève, aucune caméra."],
+      ["Que devient l'enregistrement ?", "La visio est transcrite, on garde le texte du cours, jamais l'audio. Aucune voix d'élève, aucune caméra."],
       ["Quelles matières, quels niveaux ?", "Le quiz est écrit à partir du transcript et du programme, donc toutes les matières. Testé au collège, sur les fractions en 4ème."],
       ["Et si le quiz est mauvais ?", "Le professeur le voit avant les élèves. Un « ok » l'envoie, un « non » l'enterre, et il peut le modifier dans la console."],
       ["Combien ça coûte ?", "Rien pour l'instant : c'est un prototype de hackathon. On cherche des professeurs pour l'essayer avec leur classe."],
@@ -127,7 +127,6 @@ const fr = {
   },
   footer: {
     team: "Construit en une journée à Paris par une équipe de quatre, pour les collèges qui n'ont pas d'assistant pédagogique.",
-    stack: "Fathom · Inngest · Mastra · Claude · Telegram · CopilotKit · Supabase · Vercel",
     code: "Code source",
     avatar: "Illustrations : Notionists de Zoish (CC0), via DiceBear.",
   },
@@ -157,7 +156,7 @@ const en: typeof fr = {
   scenes: [
     {
       title: "The class ends.",
-      text: "Fathom has transcribed. The teacher receives the quiz.",
+      text: "The lesson is transcribed. The teacher receives the quiz.",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -229,7 +228,7 @@ const en: typeof fr = {
     title: "Built for the classroom, not for the administration.",
     items: [
       ["The teacher leads.", "The agent proposes, the teacher approves. Nothing reaches students without their “ok”."],
-      ["Only the lesson is recorded.", "Fathom transcribes the call; we keep the text, not the audio. No camera, no student voices."],
+      ["Only the lesson is recorded.", "The call is transcribed; we keep the text, not the audio. No camera, no student voices."],
       ["The report goes to the teacher.", "Never to the administration. Never a score on the teacher."],
       ["Students install nothing.", "Telegram, which they already have. Polls in the group, a private message for tutoring."],
     ],
@@ -238,7 +237,7 @@ const en: typeof fr = {
     title: "Frequently asked questions",
     items: [
       ["What about in-person classes?", "Today Le Petit Nicolas joins online classes (Zoom, Meet, Teams). The “phone on the desk” version is the next step."],
-      ["What happens to the recording?", "Fathom transcribes; we keep the lesson's text, never the audio. No student voices, no camera."],
+      ["What happens to the recording?", "The call is transcribed; we keep the lesson's text, never the audio. No student voices, no camera."],
       ["Which subjects and levels?", "The quiz is written from the transcript and the syllabus, so any subject. Tested in middle school, on fractions."],
       ["What if the quiz is bad?", "The teacher sees it before the students do. An “ok” sends it, a “no” buries it, and it can be edited in the console."],
       ["How much does it cost?", "Nothing for now: it's a hackathon prototype. We're looking for teachers to try it with their class."],
@@ -252,7 +251,6 @@ const en: typeof fr = {
   },
   footer: {
     team: "Built in one day in Paris by a team of four, for the schools that have no teaching assistant.",
-    stack: "Fathom · Inngest · Mastra · Claude · Telegram · CopilotKit · Supabase · Vercel",
     code: "Source code",
     avatar: "Illustrations: Notionists by Zoish (CC0), via DiceBear.",
   },
