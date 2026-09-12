@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { sendMessage } from "@/agent/tools/telegram";
+import { sendMessage, editMessage, toTelegramMarkdown } from "@/agent/tools/telegram";
 import { resolvePoll } from "@data/repository";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
@@ -190,13 +190,14 @@ async function handleMessage(
  * own server-side thread state (pending proposed question, etc.) carries
  * across messages within this server's lifetime.
  */
+const EDIT_THROTTLE_MS = 600;
+
 async function forwardToMathQuizAgent(botToken: string, chatId: number, text: string): Promise<void> {
   const port = process.env.PORT ?? "3000";
   const url = `http://localhost:${port}/api/copilotkit/agent/mathQuiz/run`;
 
-  await sendMessage(botToken, chatId, "⏳ Building...");
+  const placeholderId = await sendMessage(botToken, chatId, "⏳ Working on it...");
 
-  let reply: string;
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -214,76 +215,137 @@ async function forwardToMathQuizAgent(botToken: string, chatId: number, text: st
 
     if (!response.ok || !response.body) {
       console.error(`mathQuiz agent request failed: HTTP ${response.status}`);
-      reply = "Sorry, I couldn't reach the quiz agent just now — try again in a moment.";
-    } else {
-      reply = await parseAgentReply(response);
+      await finalizePlaceholder(
+        botToken,
+        chatId,
+        placeholderId,
+        "Sorry, I couldn't reach the quiz agent just now — try again in a moment.",
+      );
+      return;
     }
+
+    await streamAgentReplyToTelegram(botToken, chatId, placeholderId, response);
   } catch (err) {
     console.error("Failed to forward message to mathQuiz agent:", err);
-    reply = "Sorry, something went wrong reaching the quiz agent — try again in a moment.";
+    await finalizePlaceholder(
+      botToken,
+      chatId,
+      placeholderId,
+      "Sorry, something went wrong reaching the quiz agent — try again in a moment.",
+    );
   }
+}
 
-  await sendLongMessage(botToken, chatId, reply || "(no reply)");
+/** Edits the placeholder into the given text, or sends it fresh if there was no placeholder. */
+async function finalizePlaceholder(
+  botToken: string,
+  chatId: number,
+  placeholderId: number | null,
+  text: string,
+): Promise<void> {
+  if (placeholderId !== null) {
+    await editMessage(botToken, chatId, placeholderId, text);
+  } else {
+    await sendMessage(botToken, chatId, text);
+  }
 }
 
 /**
- * Reads an AG-UI SSE response body to completion and concatenates the
- * TEXT_MESSAGE_CONTENT deltas into the assistant's final reply text. Ignores
- * reasoning/tool-call event types — this is a chat bridge, not a debug
- * console. Hand-rolled (no SSE client library) since we only need the final
- * text, not incremental delivery to Telegram.
+ * Streams an AG-UI SSE response, editing the placeholder Telegram message in
+ * place as text arrives (throttled to respect Telegram's edit rate limits)
+ * instead of waiting for the full reply and sending a separate message. Also
+ * surfaces tool activity ("🔧 propose_question...") while the model is still
+ * working and hasn't produced any reply text yet, so "Building..." never sits
+ * there unexplained. Returns the final reply text (already sent/edited into
+ * place) mainly for logging/testing purposes.
  */
-async function parseAgentReply(response: Response): Promise<string> {
-  const raw = await response.text();
+async function streamAgentReplyToTelegram(
+  botToken: string,
+  chatId: number,
+  placeholderId: number | null,
+  response: Response,
+): Promise<string> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
   let textReply = "";
   let sawError: string | null = null;
   let finishReason: string | null = null;
+  let lastEditedText = "";
+  let lastEditAt = 0;
 
-  for (const block of raw.split("\n\n")) {
-    const dataLine = block
-      .split("\n")
-      .find((line) => line.startsWith("data:"));
-    if (!dataLine) continue;
+  const maybeEdit = async (displayText: string, force = false) => {
+    if (placeholderId === null) return;
+    if (displayText === lastEditedText) return;
+    const now = Date.now();
+    if (!force && now - lastEditAt < EDIT_THROTTLE_MS) return;
+    const ok = await editMessage(botToken, chatId, placeholderId, toTelegramMarkdown(displayText).slice(0, TELEGRAM_MESSAGE_LIMIT));
+    if (ok) {
+      lastEditedText = displayText;
+      lastEditAt = now;
+    }
+  };
 
-    const jsonText = dataLine.slice("data:".length).trim();
-    if (!jsonText) continue;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (value) buffer += decoder.decode(value, { stream: true });
 
-    let event: { type?: string; delta?: string; message?: string; finishReason?: string };
-    try {
-      event = JSON.parse(jsonText);
-    } catch {
-      continue;
+    let boundary: number;
+    while ((boundary = buffer.indexOf("\n\n")) !== -1) {
+      const block = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+
+      const dataLine = block.split("\n").find((line) => line.startsWith("data:"));
+      if (!dataLine) continue;
+      const jsonText = dataLine.slice("data:".length).trim();
+      if (!jsonText) continue;
+
+      let event: { type?: string; delta?: string; message?: string; finishReason?: string; toolCallName?: string };
+      try {
+        event = JSON.parse(jsonText);
+      } catch {
+        continue;
+      }
+
+      if (event.type === "TEXT_MESSAGE_CONTENT" && typeof event.delta === "string") {
+        textReply += event.delta;
+        await maybeEdit(textReply);
+      } else if (event.type === "TOOL_CALL_START" && !textReply && event.toolCallName) {
+        await maybeEdit(`⏳ ${event.toolCallName}...`);
+      } else if (event.type === "RUN_ERROR") {
+        sawError = event.message ?? "unknown error";
+      } else if (event.type === "RUN_FINISHED") {
+        finishReason = event.finishReason ?? null;
+      }
     }
 
-    if (event.type === "TEXT_MESSAGE_CONTENT" && typeof event.delta === "string") {
-      textReply += event.delta;
-    } else if (event.type === "RUN_ERROR") {
-      sawError = event.message ?? "unknown error";
-    } else if (event.type === "RUN_FINISHED") {
-      finishReason = event.finishReason ?? null;
-    }
+    if (done) break;
   }
 
-  // "stop" means the model chose to end its turn naturally. Anything else
-  // (e.g. "length" / "tool-calls" from hitting maxSteps mid-batch) means it
-  // was cut off — some tool calls (sends, saves) may have already happened,
-  // but there's no natural closing text, so say so instead of going silent.
   const cutOffNotice =
     finishReason && finishReason !== "stop"
       ? "\n\n⚠️ I hit my step limit before finishing this turn — some of what you asked may be incomplete. Ask me to continue or check status."
       : "";
 
-  if (textReply.trim()) return textReply.trim() + cutOffNotice;
-  if (sawError) {
-    console.error("mathQuiz agent RUN_ERROR:", sawError);
-    return "Sorry, the quiz agent hit an error processing that — try again in a moment.";
-  }
-  if (cutOffNotice) return `I hit my step limit before producing a reply for that.${cutOffNotice}`;
-  return "(no reply)";
-}
+  const finalText = textReply.trim()
+    ? textReply.trim() + cutOffNotice
+    : sawError
+      ? (console.error("mathQuiz agent RUN_ERROR:", sawError),
+        "Sorry, the quiz agent hit an error processing that — try again in a moment.")
+      : cutOffNotice
+        ? `I hit my step limit before producing a reply for that.${cutOffNotice}`
+        : "(no reply)";
 
-async function sendLongMessage(botToken: string, chatId: number, text: string): Promise<void> {
-  for (let i = 0; i < text.length; i += TELEGRAM_MESSAGE_LIMIT) {
-    await sendMessage(botToken, chatId, text.slice(i, i + TELEGRAM_MESSAGE_LIMIT));
+  if (finalText.length <= TELEGRAM_MESSAGE_LIMIT) {
+    await maybeEdit(finalText, true);
+  } else if (placeholderId !== null) {
+    // Overflow: the placeholder carries the first chunk, the rest follow as
+    // ordinary new messages (Telegram has no multi-message edit).
+    await editMessage(botToken, chatId, placeholderId, toTelegramMarkdown(finalText.slice(0, TELEGRAM_MESSAGE_LIMIT)));
+    for (let i = TELEGRAM_MESSAGE_LIMIT; i < finalText.length; i += TELEGRAM_MESSAGE_LIMIT) {
+      await sendMessage(botToken, chatId, toTelegramMarkdown(finalText.slice(i, i + TELEGRAM_MESSAGE_LIMIT)));
+    }
   }
+
+  return finalText;
 }

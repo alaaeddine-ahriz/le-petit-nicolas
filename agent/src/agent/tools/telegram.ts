@@ -49,12 +49,53 @@ async function findClassIdForQuiz(quizId: string): Promise<string | null> {
 // because `next dev` reloads wiped it and answers to already-sent polls were
 // silently dropped.
 
-export async function sendMessage(botToken: string, chatId: number, text: string): Promise<void> {
-  await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/sendMessage`, {
+/**
+ * Converts the CommonMark-ish markdown the agent naturally writes (**bold**,
+ * `code`, ## headers, --- rules) into Telegram's legacy "Markdown" parse mode,
+ * which only understands single-asterisk *bold* (double-star bold is not
+ * valid syntax there and renders as literal asterisks). Headers become bold
+ * lines; horizontal rules are dropped — Telegram has no equivalent.
+ */
+export function toTelegramMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "*$1*")
+    .replace(/^#{1,6}\s*(.+)$/gm, "*$1*")
+    .replace(/^\s*-{3,}\s*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Sends a message and returns its message_id (needed to later edit it in place for a streaming-style reply). */
+export async function sendMessage(botToken: string, chatId: number, text: string): Promise<number | null> {
+  const response = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text }),
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
   });
+  const data = (await response.json()) as TelegramApiResponse<{ message_id: number }>;
+  return data.result?.message_id ?? null;
+}
+
+/**
+ * Edits an existing message's text in place. Used to turn a "Building..."
+ * placeholder into the streamed reply as it arrives, rather than sending a
+ * separate final message. Telegram rejects an edit whose text is identical
+ * to the current one ("message is not modified") — that's expected during
+ * throttled streaming and is safely ignored, not an error worth surfacing.
+ */
+export async function editMessage(
+  botToken: string,
+  chatId: number,
+  messageId: number,
+  text: string,
+): Promise<boolean> {
+  const response = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" }),
+  });
+  const data = (await response.json()) as TelegramApiResponse<unknown>;
+  return data.ok;
 }
 
 async function sendPollToChat(

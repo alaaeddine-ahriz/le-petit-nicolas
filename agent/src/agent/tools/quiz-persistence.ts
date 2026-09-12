@@ -5,6 +5,74 @@ import { questionBuilderState } from "@/agent/state/question-builder-state";
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
+export const list_pending_quizzes = defineTool({
+  name: "list_pending_quizzes",
+  description:
+    "List quizzes already saved to Supabase (via save_quiz_to_supabase) that have NOT been sent yet (sent_at is null) for a lesson. Use this before sending when the teacher says 'send it' / 'envoyer' — do not rely only on the in-chat conversation to remember what was built, since it may not be reachable at send time (e.g. this bot forwards Telegram messages one at a time, without full conversation history). This is the reliable source of truth for 'what's ready to send'.",
+  parameters: z.object({
+    lessonId: z.string().optional().describe("The lessons.id to check; defaults to the most recent lesson"),
+  }),
+  execute: async ({ lessonId }) => {
+    const supabase = createAdminClient();
+
+    let resolvedLessonId = lessonId;
+    if (!resolvedLessonId) {
+      const { data: lessons, error } = await supabase
+        .from("lessons")
+        .select("id")
+        .order("started_at", { ascending: false })
+        .limit(1);
+      if (error || !lessons?.[0]) {
+        return { ok: false, error: `Could not find a lesson: ${error?.message ?? "no lessons found"}` };
+      }
+      resolvedLessonId = lessons[0].id as string;
+    }
+
+    const { data: concepts, error: conceptsError } = await supabase
+      .from("concepts_detected")
+      .select("id")
+      .eq("lesson_id", resolvedLessonId);
+
+    if (conceptsError) {
+      return { ok: false, error: `Failed to load concepts: ${conceptsError.message}` };
+    }
+    if (!concepts || concepts.length === 0) {
+      return { ok: true, pendingQuizzes: [] };
+    }
+
+    const { data: quizzes, error: quizzesError } = await supabase
+      .from("quizzes")
+      .select("id, question")
+      .in("concept_id", concepts.map((c) => c.id))
+      .is("sent_at", null);
+
+    if (quizzesError) {
+      return { ok: false, error: `Failed to load quizzes: ${quizzesError.message}` };
+    }
+    if (!quizzes || quizzes.length === 0) {
+      return { ok: true, pendingQuizzes: [] };
+    }
+
+    const pendingQuizzes = [];
+    for (const quiz of quizzes) {
+      const { data: options } = await supabase
+        .from("quiz_options")
+        .select("id, label, text, is_correct")
+        .eq("quiz_id", quiz.id)
+        .order("label", { ascending: true });
+
+      pendingQuizzes.push({
+        quizId: quiz.id,
+        question: quiz.question,
+        options: (options ?? []).map((o) => ({ id: o.id, text: o.text, isCorrect: o.is_correct })),
+        correctOptionIndex: (options ?? []).findIndex((o) => o.is_correct),
+      });
+    }
+
+    return { ok: true, pendingQuizzes };
+  },
+});
+
 export const list_lessons = defineTool({
   name: "list_lessons",
   description:

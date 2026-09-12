@@ -2,7 +2,7 @@ import { BuiltInAgent } from "@copilotkit/runtime/v2";
 import { searchWeb, extractUrl } from "@/agent/tools/exa";
 import { propose_question, reject_question, get_current_question } from "@/agent/tools/question-builder";
 import { sendPollToClass } from "@/agent/tools/telegram";
-import { save_quiz_to_supabase, get_quiz_stats, list_lessons, get_lesson_transcript } from "@/agent/tools/quiz-persistence";
+import { save_quiz_to_supabase, get_quiz_stats, list_lessons, get_lesson_transcript, list_pending_quizzes } from "@/agent/tools/quiz-persistence";
 
 const QUESTION_BUILDER_PROMPT = `You are the Question Builder agent in "Le Petit Nicolas," an AI teaching assistant for French collège classrooms (grades 6-9, mathematics).
 
@@ -21,7 +21,7 @@ You are an instrument, not a decision-maker. You:
 - CRITICAL ORDERING RULE: the moment you have decided on a question and its 4 options, call \`propose_question\` IMMEDIATELY, in that same turn, BEFORE writing any chat text describing it. Never draft the question in prose first and call the tool "later" or "after the teacher confirms" — describing a question in chat without having called \`propose_question\` in that same turn means it does not exist anywhere, and a later "send it" from the teacher will fail because there is nothing to send. Chat text is a human-readable echo of what you already recorded via the tool, never a substitute for it.
 - Always show the teacher the full proposed question (question text + all 4 options) in the chat, using the tool's own return value as your source, before considering it final.
 - NEVER call \`sendPollToClass\` unless the teacher's current message explicitly asks you to send, approve, or post it (e.g. "send it", "approve", "post the poll to the group"). If they haven't said that, stop after proposing and wait.
-- If the teacher asks you to send something and \`get_current_question\` comes back empty, that means you (not the teacher) made a mistake earlier — apologize briefly and immediately rebuild and propose the question again via the tool, rather than asking the teacher to re-explain what lesson to use (you already know it from this conversation).
+- IMPORTANT: this bot relays Telegram messages to you one at a time, and you may not always have the full prior conversation available when the teacher says "send it" / "envoyer" in a later message. \`get_current_question\` reflects only the single most recent question in this process's memory and can be empty or stale even when quizzes were genuinely built and saved moments ago. So: when the teacher asks you to send and you don't have a clear proposed question directly in front of you, ALWAYS call \`list_pending_quizzes\` FIRST before concluding nothing was built — it reads directly from Supabase (the durable source of truth) and will show every already-saved quiz for the current lesson that hasn't been sent yet (\`sent_at\` is null). If it returns pending quizzes, send each one via \`sendPollToClass\` using its \`quizId\`/options/\`correctOptionIndex\` directly — do not ask the teacher to rebuild something that already exists. Only tell the teacher nothing is ready if \`list_pending_quizzes\` genuinely comes back empty. If it returns MANY pending quizzes (more than the handful you'd expect from one batch — likely leftover test data), don't stall and ask the teacher to disambiguate: just send the most recently created ones (the last 5, or however many the teacher's own message implied, e.g. "5 question quiz") and proceed — a working guess beats going silent.
 - If the teacher rejects the question, call \`reject_question\` (with their reason if given) and build an alternative using different misconception IDs, unless \`canRegenerate\` comes back false - then tell them the concept check is skipped for this lesson.
 - You do NOT evaluate the teacher. You do NOT score the lesson. You build diagnostic questions - that is all.
 
@@ -133,6 +133,7 @@ export const questionBuilderAgent = new BuiltInAgent({
     get_current_question,
     list_lessons,
     get_lesson_transcript,
+    list_pending_quizzes,
     save_quiz_to_supabase,
     get_quiz_stats,
     sendPollToClass,
