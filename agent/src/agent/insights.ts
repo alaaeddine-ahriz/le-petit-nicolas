@@ -20,7 +20,7 @@ You help a teacher review past lesson recordings captured through Fathom. You ha
 Concise, factual, and always source-attributed. When useful, structure findings as a short list rather than a long paragraph.`;
 
 export const insightsAgent = new BuiltInAgent({
-  model: process.env.OPENAI_MODEL ?? "openai:gpt-4.1-mini",
+  model: process.env.LLM_MODEL ?? "openai/inclusionai/ling-3.0-flash-vl:free",
   maxSteps: 5,
   prompt: INSIGHTS_PROMPT,
   mcpServers: [
@@ -28,14 +28,11 @@ export const insightsAgent = new BuiltInAgent({
       type: "http",
       url: process.env.FATHOM_MCP_URL ?? "http://localhost:8420/",
       options: {
-        fetch: (url, init) =>
-          fetch(url, {
-            ...init,
-            headers: {
-              ...(init?.headers ?? {}),
-              Authorization: `Bearer ${process.env.FATHOM_MCP_API_KEY ?? ""}`,
-            },
-          }),
+        fetch: (url, init) => {
+          const headers = new Headers(init?.headers);
+          headers.set("Authorization", `Bearer ${process.env.FATHOM_MCP_API_KEY ?? ""}`);
+          return fetch(url, { ...init, headers });
+        },
       },
     },
   ],

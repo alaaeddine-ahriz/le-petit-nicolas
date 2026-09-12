@@ -96,7 +96,7 @@ When you update \`lessonState\`, your output is a structured JSON object conform
 - You are concise. You do not narrate your reasoning. You output state or you output signals.`;
 
 export const lessonTrackerAgent = new BuiltInAgent({
-  model: process.env.OPENAI_MODEL ?? "openai:gpt-4.1-mini",
+  model: process.env.LLM_MODEL ?? "openai/inclusionai/ling-3.0-flash-vl:free",
   tools: [
     parse_teacher_command,
     apply_teacher_command,

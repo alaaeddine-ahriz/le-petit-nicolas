@@ -2,12 +2,14 @@ import { CopilotKitIntelligence, CopilotRuntime } from "@copilotkit/runtime/v2";
 import { agent } from "@/agent";
 import { insightsAgent } from "@/agent/insights";
 import { lessonTrackerAgent } from "@/agent/lesson-tracker";
+import { questionBuilderAgent } from "@/agent/question-builder";
 import { telegramChannel } from "@/telegram";
 
 const agents = {
   default: agent,
   lessonTracker: lessonTrackerAgent,
   insights: insightsAgent,
+  mathQuiz: questionBuilderAgent,
 };
 
 const intelligenceApiKey =
