@@ -1,6 +1,7 @@
 import { defineTool } from "@copilotkit/runtime/v2";
 import { z } from "zod";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { recordPollSend, markQuizSent } from "@data/repository";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 
@@ -43,13 +44,10 @@ async function findClassIdForQuiz(quizId: string): Promise<string | null> {
   return lesson?.class_id ?? null;
 }
 
-/**
- * Maps a Telegram poll id to the Supabase quiz/option rows it corresponds
- * to, so incoming poll_answer updates can be recorded. In-memory singleton —
- * fine for this single-process demo; lost on restart (a poll sent before a
- * restart can no longer have its answers recorded).
- */
-export const pollRegistry = new Map<string, { quizId: string; optionIds: string[] }>();
+// The poll → quiz mapping used to be an in-memory Map here. It's now the
+// `quiz_poll_sends` table (see recordPollSend / resolvePoll in @data/repository),
+// because `next dev` reloads wiped it and answers to already-sent polls were
+// silently dropped.
 
 async function sendPollToChat(
   botToken: string,
@@ -180,12 +178,18 @@ export const sendPollToClass = defineTool({
 
       const pollId = data.result?.poll?.id;
       if (pollId) {
-        pollRegistry.set(pollId, { quizId, optionIds });
+        await recordPollSend({
+          telegramPollId: pollId,
+          quizId,
+          studentId: student.id,
+          optionIds,
+        });
       }
       results.push({ studentId: student.id, firstName: student.first_name, ok: true });
     }
 
     const sentCount = results.filter((r) => r.ok).length;
+    if (sentCount > 0) await markQuizSent(quizId);
     return {
       ok: sentCount > 0,
       sentCount,

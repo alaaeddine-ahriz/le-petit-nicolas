@@ -32,6 +32,63 @@ async function answersForQuiz(quizId: string): Promise<AnswerRow[]> {
   return data as unknown as AnswerRow[];
 }
 
+// ---------- Telegram poll ↔ quiz mapping ----------
+//
+// Must live in the database, not in a Map: `next dev` reloads on every file
+// save, and a poll sent before a reload could no longer have its answers
+// recorded — they arrived, failed to resolve, and were dropped silently.
+
+/** Call once per student right after their poll is sent. */
+export async function recordPollSend(input: {
+  telegramPollId: string;
+  quizId: string;
+  studentId: string;
+  /** quiz_options ids, in the exact order the options were sent to Telegram. */
+  optionIds: string[];
+}): Promise<void> {
+  const { error } = await db().from("quiz_poll_sends").upsert(
+    {
+      telegram_poll_id: input.telegramPollId,
+      quiz_id: input.quizId,
+      student_id: input.studentId,
+      option_ids: input.optionIds,
+    },
+    { onConflict: "telegram_poll_id" }
+  );
+
+  if (error) fail("recordPollSend", error);
+}
+
+/** Resolves an incoming poll_answer back to its quiz, student and options. */
+export async function resolvePoll(
+  telegramPollId: string
+): Promise<{ quizId: string; studentId: string; optionIds: string[] } | null> {
+  const { data, error } = await db()
+    .from("quiz_poll_sends")
+    .select("quiz_id, student_id, option_ids")
+    .eq("telegram_poll_id", telegramPollId)
+    .maybeSingle();
+
+  if (error) fail("resolvePoll", error);
+  if (!data) return null;
+
+  return { quizId: data.quiz_id, studentId: data.student_id, optionIds: data.option_ids };
+}
+
+/** Records that a quiz actually went out — otherwise `sent_at` stays null forever. */
+export async function markQuizSent(quizId: string, openForSeconds = 60): Promise<void> {
+  const now = new Date();
+  const { error } = await db()
+    .from("quizzes")
+    .update({
+      sent_at: now.toISOString(),
+      closes_at: new Date(now.getTime() + openForSeconds * 1000).toISOString(),
+    })
+    .eq("id", quizId);
+
+  if (error) fail("markQuizSent", error);
+}
+
 // ---------- Closing the loop: the teacher's [DONE] ----------
 
 /**

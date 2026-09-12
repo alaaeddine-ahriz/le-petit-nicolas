@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/utils/supabase/admin";
-import { pollRegistry } from "@/agent/tools/telegram";
+import { resolvePoll } from "@data/repository";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 
@@ -18,9 +18,9 @@ interface PollAnswerUpdate {
 
 /**
  * Long-polls Telegram's getUpdates for poll_answer events and records each
- * answer into Supabase's quiz_answers table, using the in-memory
- * pollRegistry populated by sendPollToClass to map a Telegram poll id back
- * to our quiz/option rows.
+ * answer into Supabase's quiz_answers table, using the quiz_poll_sends table
+ * written by sendPollToClass to map a Telegram poll id back to our
+ * quiz/option rows.
  *
  * NOTE: this consumes the same bot's update queue as the teammate's
  * CopilotKit Telegram channel (agent/src/telegram/start.ts /
@@ -73,9 +73,11 @@ async function pollLoop(botToken: string): Promise<void> {
 }
 
 async function handlePollAnswer(pollAnswer: NonNullable<PollAnswerUpdate["poll_answer"]>): Promise<void> {
-  const mapping = pollRegistry.get(pollAnswer.poll_id);
+  // Looked up in the database rather than process memory, so answers to polls
+  // sent before a dev-server reload still resolve.
+  const mapping = await resolvePoll(pollAnswer.poll_id);
   if (!mapping) {
-    return; // Poll from a previous server run, or not one of ours — nothing to record against.
+    return; // Not one of ours — nothing to record against.
   }
 
   const telegramUserId = pollAnswer.user?.id;
