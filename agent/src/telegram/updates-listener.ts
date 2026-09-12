@@ -98,7 +98,7 @@ async function pollLoop(botToken: string): Promise<void> {
   }
 }
 
-async function handlePollAnswer(pollAnswer: NonNullable<TelegramUpdate["poll_answer"]>): Promise<void> {
+export async function handlePollAnswer(pollAnswer: NonNullable<TelegramUpdate["poll_answer"]>): Promise<void> {
   // Looked up in quiz_poll_sends (Supabase) rather than process memory, so
   // answers to polls sent before a dev-server reload still resolve.
   const mapping = await resolvePoll(pollAnswer.poll_id);

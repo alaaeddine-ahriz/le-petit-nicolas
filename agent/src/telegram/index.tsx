@@ -6,6 +6,7 @@ import {
   telegram,
 } from "@copilotkit/channels-telegram";
 import { agent } from "@/agent";
+import { handlePollAnswer } from "@/telegram/updates-listener";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const channelName = process.env.CHANNEL_CODE ?? "le-petit-nicolas";
@@ -49,9 +50,29 @@ function createTelegramChannel(botToken: string, name: string) {
  */
 function telegramWithConflictRetry(botToken: string) {
   const adapter = telegram({ token: botToken });
+
+  // When CopilotKit owns getUpdates, it is the only consumer — so quiz answers
+  // have to be handled here too. Its allowed_updates list omits "poll_answer",
+  // and Telegram simply never delivers an update type that isn't listed, so the
+  // list is widened on the way through as well. Without both of these, polls go
+  // out and every answer is silently lost (quiz_answers stays empty).
+  adapter.bot.on("poll_answer", async (ctx) => {
+    try {
+      await handlePollAnswer(ctx.pollAnswer);
+    } catch (error) {
+      console.error("Failed to record poll answer:", error);
+    }
+  });
+
   const start = adapter.bot.start.bind(adapter.bot);
-  adapter.bot.start = ((...args: Parameters<typeof adapter.bot.start>) =>
-    startPollingWithRetry(() => start(...args))) as typeof adapter.bot.start;
+  adapter.bot.start = ((options?: Parameters<typeof adapter.bot.start>[0]) =>
+    startPollingWithRetry(() =>
+      start({
+        ...options,
+        allowed_updates: [...(options?.allowed_updates ?? []), "poll_answer"],
+      }),
+    )) as typeof adapter.bot.start;
+
   return adapter;
 }
 
