@@ -38,3 +38,6 @@ Copy lives in `landing/content.ts`; the contact and repository links are the con
 The schema is applied and live. Before querying Supabase from any folder, read
 [data/README.md](data/README.md) — RLS is on with no policies, so only the
 server-side service role key can read or write.
+
+## Demo
+Link https://youtu.be/4yE0OucBuvs?si=lPADp2fJzRBTz4fg 
