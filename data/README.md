@@ -22,34 +22,35 @@ ships in the browser bundle, so an open table exposes every student's record.
 
 ## Repository API
 
-Don't write raw queries — `data/src/repository.ts` has typed functions for the
-whole flow, and they work whether the transcript came from a live stream or a
-Fathom batch. From `agent/`, import via the `@data/*` alias:
+`agent/src/agent/tools/` (Juan) already covers capture → concept → quiz → 1:1
+send → collect answers → aggregate by misconception. `data/src/repository.ts`
+covers the half that had no code: what happens *after* the teacher reads the
+diagnosis. Import from `agent/` via the `@data/*` alias.
 
 ```ts
-import { startLesson, saveConcept, saveQuiz, markQuizSent,
-         recordAnswer, getQuizResults, completeIntervention } from "@data/repository";
+import { completeIntervention, getStudentProfile, getClassProfile,
+         identifyTelegramUser, claimStudent, listUnclaimedStudents } from "@data/repository";
 
-const lessonId = await startLesson({ classId, teacherId, title });
-const conceptId = await saveConcept(lessonId, { label, transcriptExcerpt });
-const { quizId, optionIds } = await saveQuiz(conceptId, { question, options });
-await markQuizSent(quizId, 60);                       // after it goes out
-await recordAnswer({ quizId, studentId, optionId: optionIds["B"] });
-
-const results = await getQuizResults(quizId);
-// → { totalAnswers, correctCount, dominant: { misconceptionLabel, count, studentIds } }
-
+// The teacher's [DONE] tap. The ONLY thing that writes teacher_interventions
+// and student_concept_profile — skip it and the per-student memory never builds.
 await completeIntervention({ conceptId, quizId, suggestedIntervention });
-// ↑ the [DONE] tap: writes the intervention AND folds the quiz into every
-//   answering student's profile. Skip it and the per-student memory never builds.
+// → { studentsUpdated, dominantMisconception }
+
+await getStudentProfile(studentId);   // "comment va Karim en fractions ?"
+await getClassProfile(classId);       // who is struggling with what
 ```
 
-Telegram `/start`: `identifyTelegramUser(telegramUserId)` returns
-`{ role: "student" | "teacher", id, firstName }` or null; then `claimStudent`
-/ `claimTeacher` links the account. `listUnclaimedStudents(classId)` gives the
-names to offer, `listReachableStudents(classId)` is who a quiz can reach.
+**Telegram `/start`, élève or prof.** `sendPollToClass` skips any student
+without a `telegram_chat_id`, and nothing else sets one — so until this is
+wired, a quiz reaches nobody:
 
-Teacher chat queries `getStudentProfile(studentId)`.
+```ts
+const who = await identifyTelegramUser(msg.from.id);   // → {role, id, firstName} | null
+if (!who) {
+  const names = await listUnclaimedStudents(classId);  // offer these as buttons
+  await claimStudent({ studentId, telegramUserId, telegramChatId });
+}
+```
 
 ## The one design idea worth knowing
 

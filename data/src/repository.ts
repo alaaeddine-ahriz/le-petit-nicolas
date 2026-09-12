@@ -1,227 +1,49 @@
+// The half of the flow that `agent/src/agent/tools/` doesn't cover.
+//
+// Juan's CopilotKit tools already handle capture → concept → quiz → 1:1 send →
+// collect answers → aggregate by misconception. What had no code at all is what
+// happens *after* the teacher reads the diagnosis: persisting the intervention,
+// and folding the result into each student's running profile. Without that the
+// "memory that builds itself" never builds, and the numbers vanish when the
+// screen closes.
+//
+// Kept as plain functions rather than agent tools so `io/` and `brain/` can call
+// them too.
+
 import { db } from "./client.js";
-import type {
-  ConceptInput,
-  MisconceptionCount,
-  QuizInput,
-  QuizResults,
-  TelegramIdentity,
-  TranscriptChunkInput,
-} from "./types.js";
+import type { TelegramIdentity } from "./types.js";
 
 function fail(context: string, error: { message: string } | null): never {
   throw new Error(`${context}: ${error?.message ?? "unknown error"}`);
 }
 
-// ---------- Lesson lifecycle ----------
+type AnswerRow = {
+  student_id: string;
+  quiz_options: { is_correct: boolean; misconception_label: string | null } | null;
+};
 
-export async function startLesson(input: {
-  classId: string;
-  teacherId: string;
-  title?: string;
-  courseDocumentRef?: string;
-}): Promise<string> {
-  const { data, error } = await db()
-    .from("lessons")
-    .insert({
-      class_id: input.classId,
-      teacher_id: input.teacherId,
-      title: input.title ?? null,
-      course_document_ref: input.courseDocumentRef ?? null,
-    })
-    .select("id")
-    .single();
-
-  if (error) fail("startLesson", error);
-  return data.id;
-}
-
-export async function endLesson(lessonId: string): Promise<void> {
-  const { error } = await db()
-    .from("lessons")
-    .update({ status: "completed", ended_at: new Date().toISOString() })
-    .eq("id", lessonId);
-
-  if (error) fail("endLesson", error);
-}
-
-/** Works for a live stream (chunk by chunk) or a Fathom transcript (all at once). */
-export async function saveTranscriptChunks(
-  lessonId: string,
-  chunks: TranscriptChunkInput[]
-): Promise<void> {
-  if (chunks.length === 0) return;
-
-  const { error } = await db().from("lesson_transcript_chunks").insert(
-    chunks.map((c) => ({
-      lesson_id: lessonId,
-      text: c.text,
-      started_at_ms: c.startedAtMs,
-      ended_at_ms: c.endedAtMs,
-    }))
-  );
-
-  if (error) fail("saveTranscriptChunks", error);
-}
-
-export async function saveLessonSummary(lessonId: string, notesMd: string): Promise<string> {
-  const { data, error } = await db()
-    .from("lesson_summaries")
-    .insert({ lesson_id: lessonId, notes_md: notesMd })
-    .select("id")
-    .single();
-
-  if (error) fail("saveLessonSummary", error);
-  return data.id;
-}
-
-// ---------- Concepts & quizzes ----------
-
-export async function saveConcept(lessonId: string, concept: ConceptInput): Promise<string> {
-  const { data, error } = await db()
-    .from("concepts_detected")
-    .insert({
-      lesson_id: lessonId,
-      label: concept.label,
-      transcript_excerpt: concept.transcriptExcerpt,
-    })
-    .select("id")
-    .single();
-
-  if (error) fail("saveConcept", error);
-  return data.id;
-}
-
-/** Returns the quiz id plus a label→optionId map, so callers can record answers by letter. */
-export async function saveQuiz(
-  conceptId: string,
-  quiz: QuizInput
-): Promise<{ quizId: string; optionIds: Record<string, string> }> {
-  const { data: quizRow, error: quizError } = await db()
-    .from("quizzes")
-    .insert({ concept_id: conceptId, question: quiz.question })
-    .select("id")
-    .single();
-
-  if (quizError) fail("saveQuiz", quizError);
-
-  const { data: optionRows, error: optionError } = await db()
-    .from("quiz_options")
-    .insert(
-      quiz.options.map((o) => ({
-        quiz_id: quizRow.id,
-        label: o.label,
-        text: o.text,
-        is_correct: o.isCorrect,
-        misconception_label: o.misconceptionLabel,
-      }))
-    )
-    .select("id, label");
-
-  if (optionError) fail("saveQuiz options", optionError);
-
-  await db()
-    .from("concepts_detected")
-    .update({ status: "check_proposed" })
-    .eq("id", conceptId);
-
-  const optionIds: Record<string, string> = {};
-  for (const row of optionRows) optionIds[row.label] = row.id;
-
-  return { quizId: quizRow.id, optionIds };
-}
-
-/** Call once the teacher has approved and the quiz has gone out to students. */
-export async function markQuizSent(quizId: string, openForSeconds = 60): Promise<void> {
-  const now = new Date();
-  const { error } = await db()
-    .from("quizzes")
-    .update({
-      approved_by_teacher: true,
-      approved_at: now.toISOString(),
-      sent_at: now.toISOString(),
-      closes_at: new Date(now.getTime() + openForSeconds * 1000).toISOString(),
-    })
-    .eq("id", quizId);
-
-  if (error) fail("markQuizSent", error);
-}
-
-/** Upsert so a student changing their mind replaces their answer rather than erroring. */
-export async function recordAnswer(input: {
-  quizId: string;
-  studentId: string;
-  optionId: string;
-}): Promise<void> {
-  const { error } = await db()
-    .from("quiz_answers")
-    .upsert(
-      { quiz_id: input.quizId, student_id: input.studentId, option_id: input.optionId },
-      { onConflict: "quiz_id,student_id" }
-    );
-
-  if (error) fail("recordAnswer", error);
-}
-
-/**
- * The bit that makes the product work: groups wrong answers by the misconception
- * each distractor encodes, so the teacher is told *what* was misunderstood
- * rather than just how many got it wrong.
- */
-export async function getQuizResults(quizId: string): Promise<QuizResults> {
+async function answersForQuiz(quizId: string): Promise<AnswerRow[]> {
   const { data, error } = await db()
     .from("quiz_answers")
     .select("student_id, quiz_options(is_correct, misconception_label)")
     .eq("quiz_id", quizId);
 
-  if (error) fail("getQuizResults", error);
-
-  type Row = {
-    student_id: string;
-    quiz_options: { is_correct: boolean; misconception_label: string | null } | null;
-  };
-  const rows = data as unknown as Row[];
-
-  let correctCount = 0;
-  const grouped = new Map<string, MisconceptionCount>();
-
-  for (const row of rows) {
-    if (row.quiz_options?.is_correct) {
-      correctCount++;
-      continue;
-    }
-    const label = row.quiz_options?.misconception_label ?? null;
-    const key = label ?? "__unlabelled__";
-    const entry = grouped.get(key) ?? { misconceptionLabel: label, count: 0, studentIds: [] };
-    entry.count++;
-    entry.studentIds.push(row.student_id);
-    grouped.set(key, entry);
-  }
-
-  const breakdown = [...grouped.values()].sort((a, b) => b.count - a.count);
-
-  return {
-    totalAnswers: rows.length,
-    correctCount,
-    breakdown,
-    dominant: breakdown[0] ?? null,
-  };
+  if (error) fail("answersForQuiz", error);
+  return data as unknown as AnswerRow[];
 }
 
-// ---------- Closing the loop ----------
+// ---------- Closing the loop: the teacher's [DONE] ----------
 
 /**
- * What the teacher's [DONE] tap must call. Without this the intervention
- * vanishes when the screen closes and the per-student memory never builds.
- * Writes the intervention and folds this quiz into every answering student's
- * profile in one go.
+ * Persists the intervention and updates every answering student's profile.
+ * Call this when the teacher acknowledges the diagnosis — it is the only thing
+ * that writes `teacher_interventions` and `student_concept_profile`.
  */
 export async function completeIntervention(input: {
   conceptId: string;
   quizId: string;
   suggestedIntervention?: string;
-}): Promise<void> {
-  const results = await getQuizResults(input.quizId);
-
+}): Promise<{ studentsUpdated: number; dominantMisconception: string | null }> {
   const { data: concept, error: conceptError } = await db()
     .from("concepts_detected")
     .select("label")
@@ -230,34 +52,33 @@ export async function completeIntervention(input: {
 
   if (conceptError) fail("completeIntervention concept", conceptError);
 
+  const answers = await answersForQuiz(input.quizId);
+
+  const wrongCounts = new Map<string, number>();
+  for (const a of answers) {
+    if (a.quiz_options?.is_correct) continue;
+    const label = a.quiz_options?.misconception_label ?? null;
+    if (!label) continue;
+    wrongCounts.set(label, (wrongCounts.get(label) ?? 0) + 1);
+  }
+  const dominant =
+    [...wrongCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
   const { error: interventionError } = await db().from("teacher_interventions").insert({
     concept_id: input.conceptId,
-    dominant_misconception: results.dominant?.misconceptionLabel ?? null,
+    dominant_misconception: dominant,
     suggested_intervention: input.suggestedIntervention ?? null,
   });
 
   if (interventionError) fail("completeIntervention", interventionError);
 
-  const { data: answers, error: answersError } = await db()
-    .from("quiz_answers")
-    .select("student_id, quiz_options(is_correct, misconception_label)")
-    .eq("quiz_id", input.quizId);
-
-  if (answersError) fail("completeIntervention answers", answersError);
-
-  type Row = {
-    student_id: string;
-    quiz_options: { is_correct: boolean; misconception_label: string | null } | null;
-  };
-
-  for (const row of answers as unknown as Row[]) {
+  for (const a of answers) {
+    const wasCorrect = Boolean(a.quiz_options?.is_correct);
     await updateStudentProfile({
-      studentId: row.student_id,
+      studentId: a.student_id,
       conceptLabel: concept.label,
-      wasCorrect: Boolean(row.quiz_options?.is_correct),
-      misconception: row.quiz_options?.is_correct
-        ? null
-        : row.quiz_options?.misconception_label ?? null,
+      wasCorrect,
+      misconception: wasCorrect ? null : a.quiz_options?.misconception_label ?? null,
     });
   }
 
@@ -265,6 +86,8 @@ export async function completeIntervention(input: {
     .from("concepts_detected")
     .update({ status: "check_sent" })
     .eq("id", input.conceptId);
+
+  return { studentsUpdated: answers.length, dominantMisconception: dominant };
 }
 
 async function updateStudentProfile(input: {
@@ -285,7 +108,7 @@ async function updateStudentProfile(input: {
   const timesCorrect = (existing?.times_correct ?? 0) + (input.wasCorrect ? 1 : 0);
 
   // Deliberately simple and explainable to a teacher: a wrong answer means
-  // struggling today, whatever the history; mastery needs a solid track record.
+  // struggling today whatever the history; mastery needs a track record.
   const mastery = !input.wasCorrect
     ? "struggling"
     : timesCorrect / timesSeen >= 0.8 && timesSeen >= 2
@@ -297,6 +120,8 @@ async function updateStudentProfile(input: {
       student_id: input.studentId,
       concept_label: input.conceptLabel,
       mastery_level: mastery,
+      // Keep the last known misconception when they get it right, so the
+      // history isn't erased by one good answer.
       last_misconception: input.misconception ?? existing?.last_misconception ?? null,
       times_seen: timesSeen,
       times_correct: timesCorrect,
@@ -322,7 +147,33 @@ export async function getStudentProfile(studentId: string) {
   return data;
 }
 
+/** Class-wide view: who is struggling with what, for the end-of-lesson report. */
+export async function getClassProfile(classId: string) {
+  const { data, error } = await db()
+    .from("student_concept_profile")
+    .select("concept_label, mastery_level, last_misconception, students!inner(id, first_name, class_id)")
+    .eq("students.class_id", classId)
+    .order("concept_label");
+
+  if (error) fail("getClassProfile", error);
+  return data;
+}
+
+export async function saveLessonSummary(lessonId: string, notesMd: string): Promise<string> {
+  const { data, error } = await db()
+    .from("lesson_summaries")
+    .insert({ lesson_id: lessonId, notes_md: notesMd })
+    .select("id")
+    .single();
+
+  if (error) fail("saveLessonSummary", error);
+  return data.id;
+}
+
 // ---------- Telegram /start: élève or prof ----------
+//
+// `sendPollToClass` skips any student without a telegram_chat_id, and nothing
+// else in the repo ever sets one — so without this, a quiz reaches nobody.
 
 /** Resolves an incoming Telegram user to a student or teacher, or null if not onboarded. */
 export async function identifyTelegramUser(
@@ -381,7 +232,7 @@ export async function claimTeacher(input: {
   if (error) fail("claimTeacher", error);
 }
 
-/** Students in a class who haven't linked Telegram yet — show these on /start. */
+/** Students in a class who haven't linked Telegram yet — the names to offer on /start. */
 export async function listUnclaimedStudents(classId: string) {
   const { data, error } = await db()
     .from("students")
@@ -392,16 +243,4 @@ export async function listUnclaimedStudents(classId: string) {
 
   if (error) fail("listUnclaimedStudents", error);
   return data;
-}
-
-/** Who a quiz actually goes out to. Students without Telegram are skipped. */
-export async function listReachableStudents(classId: string) {
-  const { data, error } = await db()
-    .from("students")
-    .select("id, first_name, telegram_chat_id")
-    .eq("class_id", classId)
-    .not("telegram_chat_id", "is", null);
-
-  if (error) fail("listReachableStudents", error);
-  return data as { id: string; first_name: string; telegram_chat_id: number }[];
 }
