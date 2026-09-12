@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useInView } from "react-intersection-observer"
 import { Avatar } from "@/components/Avatar"
 import { Phone } from "@/components/Phone"
 import { content, type Lang, type Scene } from "@/content"
+import { HOME } from "@/lib/meta"
 
-// Fill in before the demo. Empty values hide the matching element.
-const DEMO_VIDEO = ""
+// Fill in before the demo. An empty CONTACT hides the "write to us" button.
 const CONTACT = ""   // e.g. "mailto:team@example.com"
 const GITHUB = "https://github.com/alaaeddine-ahriz/le-petit-nicolas"
 
@@ -17,12 +17,36 @@ function Reveal({ children, className }: { children: ReactNode; className?: stri
   return <div ref={ref} className={["reveal", inView ? "in" : "", className].filter(Boolean).join(" ")}>{children}</div>
 }
 
-// One step of the story. Reports itself as active when it crosses the middle of the viewport.
-function SceneBlock({ scene, index, active, onActive }: { scene: Scene; index: number; active: boolean; onActive: (i: number) => void }) {
-  const { ref, inView } = useInView({ rootMargin: "-40% 0px -40% 0px" })
-  useEffect(() => { if (inView) onActive(index) }, [inView, index, onActive])
+// The current scene is the last one whose top edge has passed the middle of the viewport.
+// Measured geometry rather than intersection events, so two scenes straddling the middle
+// can't fight over the phone, and a jump (anchor, reload) lands on the right conversation.
+function useActiveScene(count: number) {
+  const els = useRef<(HTMLElement | null)[]>([])
+  const [active, setActive] = useState(0)
+
+  useEffect(() => {
+    const measure = () => {
+      const middle = window.innerHeight / 2
+      let current = 0
+      els.current.forEach((el, i) => { if (el && el.getBoundingClientRect().top <= middle) current = i })
+      setActive(current)
+    }
+    measure()
+    window.addEventListener("scroll", measure, { passive: true })
+    window.addEventListener("resize", measure)
+    return () => {
+      window.removeEventListener("scroll", measure)
+      window.removeEventListener("resize", measure)
+    }
+  }, [count])
+
+  const bind = (i: number) => (el: HTMLElement | null) => { els.current[i] = el }
+  return { active, bind }
+}
+
+function SceneBlock({ scene, index, active, sceneRef }: { scene: Scene; index: number; active: boolean; sceneRef: (el: HTMLElement | null) => void }) {
   return (
-    <div className={active ? "scene active" : "scene"} ref={ref}>
+    <div className={active ? "scene active" : "scene"} ref={sceneRef}>
       <span className="scene-n">{index + 1}</span>
       <h3>{scene.title}</h3>
       <p>{scene.text}</p>
@@ -31,25 +55,14 @@ function SceneBlock({ scene, index, active, onActive }: { scene: Scene; index: n
   )
 }
 
-export default function Page() {
-  const [lang, setLang] = useState<Lang>("fr")
-  const [active, setActive] = useState(0)
-
-  // ?lang=en wins, then the last choice on this device, else French.
-  useEffect(() => {
-    try {
-      const fromUrl = new URLSearchParams(window.location.search).get("lang")
-      const stored = window.localStorage.getItem("lang")
-      setLang(fromUrl === "en" || fromUrl === "fr" ? fromUrl : stored === "en" ? "en" : "fr")
-    } catch {}
-  }, [])
-
-  useEffect(() => {
-    document.documentElement.lang = lang
-    try { window.localStorage.setItem("lang", lang) } catch {}
-  }, [lang])
-
+export function Landing({ lang }: { lang: Lang }) {
   const t = content[lang]
+  const { active, bind } = useActiveScene(t.scenes.length)
+
+  // Older links used ?lang=en on the home page; send them to the English page.
+  useEffect(() => {
+    if (lang === "fr" && new URLSearchParams(window.location.search).get("lang") === "en") window.location.replace(HOME.en)
+  }, [lang])
 
   return (
     <>
@@ -60,14 +73,14 @@ export default function Page() {
             {t.brand}
           </a>
           <div className="nav-right">
-            <div className="lang" role="group" aria-label="Langue / Language">
+            <nav className="lang" aria-label={t.nav.lang}>
               {(["fr", "en"] as Lang[]).map((l) => (
-                <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)}>
+                <a key={l} href={HOME[l]} hrefLang={l} lang={l} aria-current={lang === l ? "page" : undefined}>
                   {l.toUpperCase()}
-                </button>
+                </a>
               ))}
-            </div>
-            <a className="btn primary small" href="#demo">{t.nav.demo}</a>
+            </nav>
+            <a className="btn primary small" href="#story">{t.hero.cta}</a>
           </div>
         </div>
       </header>
@@ -84,8 +97,8 @@ export default function Page() {
             </h1>
             <p className="lead rise" style={{ animationDelay: "160ms" }}>{t.hero.lead}</p>
             <div className="cta rise" style={{ animationDelay: "240ms" }}>
-              <a className="btn primary" href="#demo">{t.hero.cta}</a>
-              <a className="link" href="#story">{t.hero.secondary}</a>
+              <a className="btn primary" href="#story">{t.hero.cta}</a>
+              <a className="link" href={GITHUB}>{t.hero.secondary}<span className="arrow" aria-hidden="true">→</span></a>
             </div>
             <ul className="trust rise" style={{ animationDelay: "320ms" }}>
               {t.hero.trust.map((s) => <li key={s}>{s}</li>)}
@@ -114,7 +127,7 @@ export default function Page() {
             </Reveal>
             <div className="story">
               <div className="scenes">
-                {t.scenes.map((s, i) => <SceneBlock scene={s} index={i} active={i === active} onActive={setActive} key={i} />)}
+                {t.scenes.map((s, i) => <SceneBlock scene={s} index={i} active={i === active} sceneRef={bind(i)} key={i} />)}
               </div>
               <div className="sticky">
                 <Phone chat={t.scenes[active].chat} sceneKey={active} />
@@ -139,7 +152,7 @@ export default function Page() {
                     return (
                       <tr key={opt} className={ok ? "ok" : ""}>
                         <td>{opt}</td>
-                        <td className="annot hand">{ok ? "✓ " : "← "}{note}</td>
+                        <td className="annot hand"><span aria-hidden="true">{ok ? "✓ " : "← "}</span>{note}</td>
                       </tr>
                     )
                   })}
@@ -194,30 +207,14 @@ export default function Page() {
           </Reveal>
         </section>
 
-        {/* 8. Demo */}
-        <section className="wrap" id="demo">
-          <Reveal>
-            <h2>{t.demo.title}</h2>
-            <p className="mute">{t.demo.text}</p>
-            <div className="video">
-              {DEMO_VIDEO ? (
-                <iframe src={DEMO_VIDEO} title={t.demo.title} allow="autoplay; fullscreen" allowFullScreen />
-              ) : (
-                <div className="placeholder hand">{t.demo.placeholder}</div>
-              )}
-            </div>
-            <p style={{ marginTop: 16 }}><a className="link" href={GITHUB}>{t.demo.code} →</a></p>
-          </Reveal>
-        </section>
-
-        {/* 9. Final call to action */}
+        {/* 8. Final call to action */}
         <section className="wrap narrow">
           <Reveal>
             <h2>{t.final.title}</h2>
             <p>{t.final.text}</p>
             <div className="cta">
               {CONTACT && <a className="btn primary" href={CONTACT}>{t.final.cta}</a>}
-              <a className="btn" href="#demo">{t.hero.cta}</a>
+              <a className="btn" href={GITHUB}>{t.hero.secondary}</a>
             </div>
           </Reveal>
         </section>

@@ -10,14 +10,19 @@ const BOT = "Le Petit Nicolas"
 
 const fr = {
   brand: BOT,
-  nav: { demo: "Voir la démo" },
+  meta: {
+    title: "Le Petit Nicolas — Le suivi du cours s'écrit tout seul",
+    description:
+      "Un assistant pédagogique qui assiste au cours en ligne, écrit le quiz, l'envoie aux élèves sur Telegram et dit au professeur ce qui a été mal compris.",
+  },
+  nav: { lang: "Langue" },
   hero: {
     eyebrow: "Pour les profs de collège qui font cours en ligne",
     title: { before: "Le suivi du cours s'écrit ", highlight: "tout seul", after: "." },
     lead:
       "Après chaque cours en ligne, Le Petit Nicolas envoie aux élèves un quiz sur ce qui a vraiment été enseigné, et rend au professeur non pas une note, mais ce que la classe a mal compris.",
-    cta: "Voir la démo",
-    secondary: "Comment ça marche ↓",
+    cta: "Comment ça marche",
+    secondary: "Voir le code",
     trust: ["Rien à installer pour les élèves", "Le prof garde la main", "L'audio n'est jamais conservé"],
     bubble: "Coucou ! Je m'occupe du quiz, toi tu fais cours.",
   },
@@ -37,7 +42,7 @@ const fr = {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
           { from: "bot", text: "Cours de 14h terminé. 5 questions prêtes sur l'addition de fractions.", time: "15:02" },
-          { from: "bot", text: "Q3 · Calcule : 1/4 + 2/3\nA. 3/7   B. 3/12   C. 11/12   D. 2/12", time: "15:02" },
+          { from: "bot", text: "Q3 · Calcule : 1/4 + 2/3\nA. 3/7\nB. 3/12\nC. 11/12\nD. 2/12", time: "15:02" },
           { from: "bot", text: "Répondre « ok » pour envoyer à la 4ème B.", time: "15:02" },
           { from: "me", text: "ok", time: "15:04" },
         ],
@@ -60,7 +65,7 @@ const fr = {
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
-          { from: "bot", text: "18/28 corrects. Erreur dominante : ils additionnent les dénominateurs. Suggestion : refaire 1/2 + 1/3 au tableau.", time: "16:10" },
+          { from: "bot", text: "18 bonnes réponses sur 28. Erreur dominante : ils additionnent les dénominateurs. Suggestion : refaire 1/2 + 1/3 au tableau.", time: "16:10" },
           { from: "bot", text: "10 élèves ont choisi 3/7 : Yassine, Adam, Hugo… La carte de la classe est dans la console.", time: "16:10" },
           { from: "me", text: "merci", time: "16:12" },
         ],
@@ -119,7 +124,6 @@ const fr = {
       ["Combien ça coûte ?", "Rien pour l'instant : c'est un prototype de hackathon. On cherche des professeurs pour l'essayer avec leur classe."],
     ],
   },
-  demo: { title: "La démo", text: "Un cours de fractions sur Google Meet, deux téléphones d'élèves, un professeur qui répond « ok ».", placeholder: "La vidéo arrive après la démo.", code: "Voir le code" },
   final: {
     title: "Un professeur, une classe, un cours. On essaie ?",
     text: "Écrivez-nous, on branche Le Petit Nicolas sur votre prochain cours en ligne.",
@@ -134,14 +138,19 @@ const fr = {
 
 const en: typeof fr = {
   brand: BOT,
-  nav: { demo: "Watch the demo" },
+  meta: {
+    title: "Le Petit Nicolas — The lesson's follow-up writes itself",
+    description:
+      "A teaching assistant that sits in on the online class, writes the quiz, sends it to students on Telegram and tells the teacher what was misunderstood.",
+  },
+  nav: { lang: "Language" },
   hero: {
     eyebrow: "For secondary-school teachers who teach online",
     title: { before: "The lesson's follow‑up writes ", highlight: "itself", after: "." },
     lead:
       "After every online class, Le Petit Nicolas sends students a quiz about what was actually taught, and gives the teacher not a score, but what the class misunderstood.",
-    cta: "Watch the demo",
-    secondary: "How it works ↓",
+    cta: "How it works",
+    secondary: "See the code",
     trust: ["Nothing to install for students", "The teacher stays in charge", "Audio is never kept"],
     bubble: "Hi! I'll handle the quiz, you teach.",
   },
@@ -161,7 +170,7 @@ const en: typeof fr = {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
           { from: "bot", text: "2 pm class over. 5 questions ready on adding fractions.", time: "3:02 pm" },
-          { from: "bot", text: "Q3 · Compute: 1/4 + 2/3\nA. 3/7   B. 3/12   C. 11/12   D. 2/12", time: "3:02 pm" },
+          { from: "bot", text: "Q3 · Compute: 1/4 + 2/3\nA. 3/7\nB. 3/12\nC. 11/12\nD. 2/12", time: "3:02 pm" },
           { from: "bot", text: "Reply “ok” to send it to 4ème B.", time: "3:02 pm" },
           { from: "me", text: "ok", time: "3:04 pm" },
         ],
@@ -184,7 +193,7 @@ const en: typeof fr = {
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
-          { from: "bot", text: "18/28 correct. Main error: they add the denominators. Suggestion: redo 1/2 + 1/3 on the board.", time: "4:10 pm" },
+          { from: "bot", text: "18 correct out of 28. Main error: they add the denominators. Suggestion: redo 1/2 + 1/3 on the board.", time: "4:10 pm" },
           { from: "bot", text: "10 students picked 3/7: Yassine, Adam, Hugo… The class map is in the console.", time: "4:10 pm" },
           { from: "me", text: "thanks", time: "4:12 pm" },
         ],
@@ -243,7 +252,6 @@ const en: typeof fr = {
       ["How much does it cost?", "Nothing for now: it's a hackathon prototype. We're looking for teachers to try it with their class."],
     ],
   },
-  demo: { title: "The demo", text: "A fractions lesson on Google Meet, two student phones, a teacher replying “ok”.", placeholder: "The video comes after the demo.", code: "See the code" },
   final: {
     title: "One teacher, one class, one lesson. Shall we try?",
     text: "Write to us and we'll plug Le Petit Nicolas into your next online class.",
@@ -256,4 +264,19 @@ const en: typeof fr = {
   },
 }
 
-export const content: Record<Lang, typeof fr> = { fr, en }
+// French typography: a thin no-break space before ? ! ; and a no-break space before : and inside « ».
+// Written as plain spaces above so the copy stays easy to edit; applied here so a line never breaks
+// before a question mark or after an opening guillemet.
+const THIN = " "
+const NBSP = " "
+const frenchSpacing = (s: string) =>
+  s.replace(/ ([?!;])/g, `${THIN}$1`).replace(/ :/g, `${NBSP}:`).replace(/« /g, `«${NBSP}`).replace(/ »/g, `${NBSP}»`)
+
+function withFrenchSpacing<T>(value: T): T {
+  if (typeof value === "string") return frenchSpacing(value) as T
+  if (Array.isArray(value)) return value.map(withFrenchSpacing) as T
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withFrenchSpacing(v)])) as T
+  return value
+}
+
+export const content: Record<Lang, typeof fr> = { fr: withFrenchSpacing(fr), en }
