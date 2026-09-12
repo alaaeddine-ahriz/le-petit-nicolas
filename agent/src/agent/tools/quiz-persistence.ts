@@ -265,7 +265,14 @@ async function saveCurrentQuestionToSupabase(input: {
   fathomMeetingId?: string;
   lessonId?: string;
 }): Promise<SaveResult> {
-  const { conceptLabel, transcriptExcerpt, fathomMeetingId, lessonId } = input;
+  const { conceptLabel, transcriptExcerpt, fathomMeetingId } = input;
+  // A model that lost the real lessonId (e.g. no tool-call history from an
+  // earlier turn) can hallucinate a placeholder like "1" instead of a real
+  // UUID. Rather than trying to insert that into a uuid column and failing,
+  // treat anything that isn't actually a UUID as "not provided" and fall
+  // back to the same resolution path as when it's omitted entirely.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const lessonId = input.lessonId && UUID_RE.test(input.lessonId) ? input.lessonId : undefined;
   const proposed = questionBuilderState.proposedQuestion;
   if (!proposed) {
     return { ok: false, error: "There is no proposed question in state to save" };
