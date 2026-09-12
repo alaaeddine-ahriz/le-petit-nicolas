@@ -10,6 +10,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "@copilotkit/channels": "^0.9.2",
+    "@copilotkit/channels-telegram": "^0.9.2",
+    "@copilotkit/channels-ui": "^0.9.2",
     "@copilotkit/react-core": "^1.71.0",
     "@copilotkit/runtime": "^1.71.0",
     "exa-js": "^2.19.0",

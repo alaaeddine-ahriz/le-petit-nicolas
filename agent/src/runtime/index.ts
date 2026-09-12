@@ -1,8 +1,37 @@
-import { CopilotRuntime } from "@copilotkit/runtime/v2";
+import { CopilotKitIntelligence, CopilotRuntime } from "@copilotkit/runtime/v2";
 import { agent } from "@/agent";
-import { lessonTrackerAgent } from "@/agent/lesson-tracker";
 import { insightsAgent } from "@/agent/insights";
+import { lessonTrackerAgent } from "@/agent/lesson-tracker";
+import { telegramChannel } from "@/telegram";
 
-export const runtime = new CopilotRuntime({
-  agents: { default: agent, lessonTracker: lessonTrackerAgent, insights: insightsAgent },
-});
+const agents = {
+  default: agent,
+  lessonTracker: lessonTrackerAgent,
+  insights: insightsAgent,
+};
+
+const intelligenceApiKey =
+  process.env.CPK_INTELLIGENCE_API_KEY ?? process.env.COPILOTKIT_API_KEY;
+
+export const runtime = createRuntime();
+
+function createRuntime() {
+  if (telegramChannel && intelligenceApiKey) {
+    return new CopilotRuntime({
+      agents,
+      intelligence: new CopilotKitIntelligence({ apiKey: intelligenceApiKey }),
+      identifyUser: () => ({ id: "web-user", name: "Petit Nicolas" }),
+      channels: [telegramChannel],
+    });
+  }
+
+  if (telegramChannel && !intelligenceApiKey) {
+    console.warn(
+      "Telegram needs CPK_INTELLIGENCE_API_KEY; running web-only runtime.",
+    );
+  }
+
+  return new CopilotRuntime({
+    agents,
+  });
+}
