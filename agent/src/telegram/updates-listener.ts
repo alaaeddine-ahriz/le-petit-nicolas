@@ -48,13 +48,10 @@ interface TelegramUpdate {
  *   teachers who haven't sent /teacher yet) — this is not a documented
  *   command/flow for non-teachers.
  *
- * NOTE: this consumes the same bot's update queue as the teammate's
- * CopilotKit Telegram channel (agent/src/telegram/start.ts /
- * agent/src/telegram/index.tsx). Telegram allows only one clean long-poll
- * consumer per bot token — running both at once would race and steal each
- * other's updates. That channel is currently disabled (no
- * CPK_INTELLIGENCE_API_KEY configured), so this is safe today. Revisit
- * before enabling that channel.
+ * NOTE: this consumes the same bot's update queue as CopilotKit's Telegram
+ * channel (agent/src/telegram/start.ts). Telegram allows only one long-poll
+ * consumer per bot token. instrumentation.ts skips this listener whenever
+ * that channel is running.
  */
 export function startTelegramUpdatesListener(): void {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;

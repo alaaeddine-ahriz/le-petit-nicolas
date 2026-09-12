@@ -6,6 +6,9 @@ export const runtime = "nodejs";
 const handler = createCopilotRuntimeHandler({
   runtime: copilotRuntime,
   basePath: "/api/copilotkit",
+  // Instrumentation owns Telegram polling. Visiting the web app must not
+  // start a second getUpdates consumer.
+  activateChannels: false,
 });
 
 export {

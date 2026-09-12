@@ -20,6 +20,8 @@ export async function startTelegramChannel() {
   if (started.__telegramChannelStarted) return;
   started.__telegramChannelStarted = true;
 
+  console.log("Starting CopilotKit Telegram channel…");
   const listener = createCopilotNodeListener({ runtime });
   await listener.channels?.ready();
+  console.log("Telegram channel ready. Message the bot in a private chat.");
 }
