@@ -2,7 +2,10 @@ import { BuiltInAgent } from "@copilotkit/runtime/v2";
 import { searchWeb, extractUrl } from "@/agent/tools/exa";
 
 export const agent = new BuiltInAgent({
-  model: process.env.LLM_MODEL ?? "openai/inclusionai/ling-3.0-flash-vl:free",
+  model:
+    process.env.LLM_MODEL ??
+    process.env.OPENAI_MODEL ??
+    "openai:gpt-4.1-mini",
   tools: [searchWeb, extractUrl],
   maxSteps: 5,
 });
