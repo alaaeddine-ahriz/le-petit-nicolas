@@ -9,6 +9,7 @@ One folder per component, one owner per folder. Stay in yours.
 | `brain/` | Claude functions: checks, answer analysis, quiz, notes.                 | 2     |
 | `io/`    | Telegram channel, phone mic, transcript ingest.                         | 1     |
 | `data/`  | Supabase schema, repositories, Auth0.                                   | 3     |
+| `landing/` | Landing page for judges. Self-contained Next.js app on port 3001 (`cd landing && npm run dev`). | 4     |
 
 ## Run the agent
 
