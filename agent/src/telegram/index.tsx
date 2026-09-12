@@ -7,6 +7,7 @@ import {
 } from "@copilotkit/channels-telegram";
 import { questionBuilderAgent } from "@/agent/question-builder";
 import { handlePollAnswer } from "@/telegram/updates-listener";
+import { explainMyAnswer } from "@/telegram/student-tools";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const channelName = process.env.CHANNEL_CODE ?? "le-petit-nicolas";
@@ -24,8 +25,25 @@ function createTelegramChannel(botToken: string, name: string) {
     // class it is supposed to be helping with.
     agent: questionBuilderAgent,
     adapters: [telegramWithConflictRetry(botToken)],
-    tools: [...defaultTelegramTools],
-    context: [...defaultTelegramContext],
+    tools: [...defaultTelegramTools, explainMyAnswer],
+    context: [
+      ...defaultTelegramContext,
+      {
+        description: "Who you are talking to on Telegram",
+        value: [
+          "Both teachers and students message you in private 1:1 chats.",
+          "",
+          "A STUDENT asking why they got something wrong, asking for an",
+          "explanation, or referring to 'la question' / 'le quiz' is asking",
+          "about the quiz they just answered. You do not know which one from",
+          "the conversation alone — ALWAYS call `explain_my_answer` first.",
+          "Never reply that you lack context without calling it.",
+          "",
+          "Answer students in French, warmly, and never reveal other students'",
+          "answers or results. Only a teacher may ask for class-wide stats.",
+        ].join("\n"),
+      },
+    ],
   });
 
   channel.onMention(async ({ thread, message }) => {

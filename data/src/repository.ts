@@ -89,6 +89,84 @@ export async function markQuizSent(quizId: string, openForSeconds = 60): Promise
   if (error) fail("markQuizSent", error);
 }
 
+// ---------- Student-facing: "pourquoi j'ai faux ?" ----------
+
+export interface AnswerExplanation {
+  studentFirstName: string;
+  question: string;
+  chosenOptionText: string;
+  wasCorrect: boolean;
+  /** The specific error the chosen distractor encodes — the heart of the explanation. */
+  misconception: string | null;
+  correctOptionText: string;
+  conceptLabel: string;
+  /** What the teacher actually said about this concept, to ground the explanation. */
+  transcriptExcerpt: string;
+  answeredAt: string;
+}
+
+/**
+ * Everything needed to explain a student's most recent answer back to them.
+ * Returns null if this Telegram user isn't a known student, or hasn't answered
+ * anything yet.
+ */
+export async function getStudentLastAnswer(
+  telegramUserId: number
+): Promise<AnswerExplanation | null> {
+  const { data: student } = await db()
+    .from("students")
+    .select("id, first_name")
+    .eq("telegram_user_id", telegramUserId)
+    .maybeSingle();
+
+  if (!student) return null;
+
+  const { data: answer, error } = await db()
+    .from("quiz_answers")
+    .select(
+      "answered_at, quiz_id, quiz_options(text, is_correct, misconception_label), quizzes(question, concepts_detected(label, transcript_excerpt))"
+    )
+    .eq("student_id", student.id)
+    .order("answered_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) fail("getStudentLastAnswer", error);
+  if (!answer) return null;
+
+  type Row = {
+    answered_at: string;
+    quiz_id: string;
+    quiz_options: { text: string; is_correct: boolean; misconception_label: string | null } | null;
+    quizzes: {
+      question: string;
+      concepts_detected: { label: string; transcript_excerpt: string } | null;
+    } | null;
+  };
+  const row = answer as unknown as Row;
+
+  // The correct option isn't on the answer row — it's whichever option of that
+  // quiz is flagged correct.
+  const { data: correct } = await db()
+    .from("quiz_options")
+    .select("text")
+    .eq("quiz_id", row.quiz_id)
+    .eq("is_correct", true)
+    .maybeSingle();
+
+  return {
+    studentFirstName: student.first_name,
+    question: row.quizzes?.question ?? "",
+    chosenOptionText: row.quiz_options?.text ?? "",
+    wasCorrect: Boolean(row.quiz_options?.is_correct),
+    misconception: row.quiz_options?.misconception_label ?? null,
+    correctOptionText: correct?.text ?? "",
+    conceptLabel: row.quizzes?.concepts_detected?.label ?? "",
+    transcriptExcerpt: row.quizzes?.concepts_detected?.transcript_excerpt ?? "",
+    answeredAt: row.answered_at,
+  };
+}
+
 // ---------- Closing the loop: the teacher's [DONE] ----------
 
 /**
