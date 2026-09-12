@@ -20,7 +20,7 @@ You help a teacher review past lesson recordings captured through Fathom. You ha
 Concise, factual, and always source-attributed. When useful, structure findings as a short list rather than a long paragraph.`;
 
 export const insightsAgent = new BuiltInAgent({
-  model: process.env.LLM_MODEL ?? "openai/inclusionai/ling-3.0-flash-vl:free",
+  model: process.env.LLM_MODEL ?? process.env.OPENAI_MODEL ?? "openai:gpt-4.1-mini",
   maxSteps: 5,
   prompt: INSIGHTS_PROMPT,
   mcpServers: [

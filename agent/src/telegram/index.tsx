@@ -5,7 +5,7 @@ import {
   defaultTelegramTools,
   telegram,
 } from "@copilotkit/channels-telegram";
-import { agent } from "@/agent";
+import { questionBuilderAgent } from "@/agent/question-builder";
 import { handlePollAnswer } from "@/telegram/updates-listener";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -19,7 +19,10 @@ function createTelegramChannel(botToken: string, name: string) {
   const channel = createChannel({
     name,
     identifyUser: "platform",
-    agent,
+    // The quiz agent, not the generic Exa one: over Telegram the teacher needs
+    // the lesson/quiz/stats tools, otherwise the bot knows nothing about the
+    // class it is supposed to be helping with.
+    agent: questionBuilderAgent,
     adapters: [telegramWithConflictRetry(botToken)],
     tools: [...defaultTelegramTools],
     context: [...defaultTelegramContext],
