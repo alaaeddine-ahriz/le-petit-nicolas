@@ -1,11 +1,10 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
-import { Caveat, Nunito } from "next/font/google"
+import { Inter } from "next/font/google"
 import "devices.css/dist/devices.css"
 import "./globals.css"
 
-const hand = Caveat({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-hand" })
-const body = Nunito({ subsets: ["latin"], weight: ["400", "600", "800"], variable: "--font-body" })
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "800"], variable: "--font-body" })
 
 export const metadata: Metadata = {
   title: "Le Petit Nicolas — Le suivi du cours s'écrit tout seul",
@@ -15,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr" className={`${hand.variable} ${body.variable}`}>
+    <html lang="fr" className={inter.variable}>
       <body>{children}</body>
     </html>
   )

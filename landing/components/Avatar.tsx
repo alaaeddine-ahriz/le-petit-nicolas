@@ -1,7 +1,7 @@
-// The mascot: DiceBear "Adventurer" style by Lisa Wischofsky (CC BY 4.0), generated once and stored in
-// public/avatar/<mood>.svg. Regenerate with the URL in scripts/avatar.sh if you want another look.
-export type Mood = "hello" | "talk" | "think" | "cheer" | "wink"
+// The mascot: DiceBear "Notionists" style by Zoish (CC0), black line art in the Notion spirit.
+// One character, several poses, generated once into public/avatar/<pose>.svg by scripts/avatar.sh.
+export type Pose = "face" | "hello" | "phone" | "point" | "ok" | "cheer" | "think"
 
-export function Avatar({ mood = "hello", size = 40, className }: { mood?: Mood; size?: number; className?: string }) {
-  return <img src={`/avatar/${mood}.svg`} width={size} height={size} alt="" className={className} draggable={false} />
+export function Avatar({ pose = "face", size = 40, className }: { pose?: Pose; size?: number; className?: string }) {
+  return <img src={`/avatar/${pose}.svg`} width={size} height={size} alt="" className={className} draggable={false} />
 }

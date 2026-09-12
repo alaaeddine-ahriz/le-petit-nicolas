@@ -19,7 +19,7 @@ function SceneBlock({ scene, index, onActive }: { scene: Scene; index: number; o
     <div className="scene" ref={ref}>
       <div className="scene-head">
         <span className="scene-n">{index + 1}</span>
-        <Avatar mood={scene.mood} size={56} className="sticker" />
+        <Avatar pose={scene.pose} size={96} className="pose" />
       </div>
       <h3>{scene.title}</h3>
       <p>{scene.text}</p>
@@ -50,20 +50,22 @@ export default function Page() {
 
   return (
     <>
-      <header className="wrap nav">
-        <a className="brand" href="#top">
-          <Avatar size={40} />
-          {t.brand}
-        </a>
-        <div className="nav-right">
-          <div className="lang" role="group" aria-label="Langue / Language">
-            {(["fr", "en"] as Lang[]).map((l) => (
-              <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)}>
-                {l.toUpperCase()}
-              </button>
-            ))}
+      <header className="nav-bar">
+        <div className="wrap nav">
+          <a className="brand" href="#top">
+            <span className="face-wrap"><Avatar pose="face" size={36} /></span>
+            {t.brand}
+          </a>
+          <div className="nav-right">
+            <div className="lang" role="group" aria-label="Langue / Language">
+              {(["fr", "en"] as Lang[]).map((l) => (
+                <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)}>
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <a className="btn primary small" href="#demo">{t.nav.demo}</a>
           </div>
-          <a className="btn small" href="#demo">{t.nav.demo}</a>
         </div>
       </header>
 
@@ -74,7 +76,7 @@ export default function Page() {
             <span className="eyebrow">{t.hero.eyebrow}</span>
             <h1>
               {t.hero.title.before}
-              <span className="wavy">{t.hero.title.highlight}</span>
+              <mark>{t.hero.title.highlight}</mark>
               {t.hero.title.after}
             </h1>
             <p className="lead">{t.hero.lead}</p>
@@ -88,7 +90,7 @@ export default function Page() {
           </div>
           <div className="mascot-stage">
             <div className="bubble">{t.hero.bubble}</div>
-            <Avatar mood="hello" size={300} className="mascot" />
+            <Avatar pose="hello" size={340} className="mascot" />
           </div>
         </section>
 
@@ -99,21 +101,23 @@ export default function Page() {
             <p>{t.problem.text}</p>
           </div>
           <div className="aside">
-            <Avatar mood="think" size={120} className="sticker" />
-            <div className="bubble small-bubble">{t.problem.bubble}</div>
+            <Avatar pose="think" size={200} />
+            <div className="bubble side-bubble">{t.problem.bubble}</div>
           </div>
         </section>
 
         {/* 3. How it works: the phone follows the scroll */}
-        <section className="wrap" id="story">
-          <h2>{t.story.title}</h2>
-          <p className="mute">{t.story.text}</p>
-          <div className="story">
-            <div className="scenes">
-              {t.scenes.map((s, i) => <SceneBlock scene={s} index={i} onActive={setActive} key={i} />)}
-            </div>
-            <div className="sticky">
-              <Phone chat={t.scenes[active].chat} sceneKey={active} />
+        <section className="band" id="story">
+          <div className="wrap">
+            <h2>{t.story.title}</h2>
+            <p className="mute">{t.story.text}</p>
+            <div className="story">
+              <div className="scenes">
+                {t.scenes.map((s, i) => <SceneBlock scene={s} index={i} onActive={setActive} key={i} />)}
+              </div>
+              <div className="sticky">
+                <Phone chat={t.scenes[active].chat} sceneKey={active} />
+              </div>
             </div>
           </div>
         </section>
@@ -124,16 +128,19 @@ export default function Page() {
             <h2>{t.trick.title}</h2>
             <p>{t.trick.text}</p>
           </div>
-          <div className="fiche">
-            <div className="fiche-q">{t.trick.question}</div>
+          <div className="card sketch">
+            <div className="card-q">{t.trick.question}</div>
             <table>
               <tbody>
-                {t.trick.rows.map(([opt, note]) => (
-                  <tr key={opt} className={note === t.trick.rows[3][1] ? "ok" : ""}>
-                    <td>{opt}</td>
-                    <td className="annot">{note === t.trick.rows[3][1] ? "✓ " : "← "}{note}</td>
-                  </tr>
-                ))}
+                {t.trick.rows.map(([opt, note], i) => {
+                  const ok = i === t.trick.rows.length - 1
+                  return (
+                    <tr key={opt} className={ok ? "ok" : ""}>
+                      <td>{opt}</td>
+                      <td className="annot">{ok ? "✓ " : "→ "}{note}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -144,7 +151,7 @@ export default function Page() {
           <h2>{t.benefits.title}</h2>
           <div className="grid">
             {t.benefits.items.map(([title, text]) => (
-              <article className="fiche" key={title}>
+              <article className="card sketch" key={title}>
                 <h3>{title}</h3>
                 <p>{text}</p>
               </article>
@@ -152,7 +159,7 @@ export default function Page() {
           </div>
           <div className="numbers">
             {t.numbers.map(([n, label]) => (
-              <div className="postit" key={label}>
+              <div className="stat" key={label}>
                 <b>{n}</b>
                 <span>{label}</span>
               </div>
@@ -161,15 +168,17 @@ export default function Page() {
         </section>
 
         {/* 6. Trust */}
-        <section className="wrap">
-          <h2>{t.rules.title}</h2>
-          <div className="rules">
-            {t.rules.items.map(([title, text]) => (
-              <div className="rule" key={title}>
-                <strong>{title}</strong>
-                <span className="mute">{text}</span>
-              </div>
-            ))}
+        <section className="band">
+          <div className="wrap">
+            <h2>{t.rules.title}</h2>
+            <div className="rules">
+              {t.rules.items.map(([title, text]) => (
+                <div className="rule" key={title}>
+                  <strong>{title}</strong>
+                  <span className="mute">{text}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -193,8 +202,8 @@ export default function Page() {
               <iframe src={DEMO_VIDEO} title={t.demo.title} allow="autoplay; fullscreen" allowFullScreen />
             ) : (
               <div>
-                <Avatar mood="cheer" size={140} />
-                <div className="hand placeholder">{t.demo.placeholder}</div>
+                <Avatar pose="ok" size={160} />
+                <div className="placeholder">{t.demo.placeholder}</div>
               </div>
             )}
           </div>
@@ -203,7 +212,7 @@ export default function Page() {
 
         {/* 9. Final call to action */}
         <section className="wrap final">
-          <Avatar mood="wink" size={140} className="sticker" />
+          <Avatar pose="cheer" size={220} />
           <div>
             <h2>{t.final.title}</h2>
             <p>{t.final.text}</p>
@@ -215,13 +224,15 @@ export default function Page() {
         </section>
       </main>
 
-      <footer className="wrap">
-        <p>{t.footer.team}</p>
-        <p className="mute small">
-          {t.footer.stack} · <a href={GITHUB}>{t.footer.code}</a>
-          <br />
-          {t.footer.avatar}
-        </p>
+      <footer>
+        <div className="wrap">
+          <p>{t.footer.team}</p>
+          <p className="mute small">
+            {t.footer.stack} · <a href={GITHUB}>{t.footer.code}</a>
+            <br />
+            {t.footer.avatar}
+          </p>
+        </div>
       </footer>
     </>
   )

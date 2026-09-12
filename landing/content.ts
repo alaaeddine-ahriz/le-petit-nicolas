@@ -1,12 +1,12 @@
 // All page copy, in both languages. Keep the two objects shaped identically.
-import type { Mood } from "@/components/Avatar"
+import type { Pose } from "@/components/Avatar"
 
 export type Lang = "fr" | "en"
 
 export type Poll = { question: string; options: [string, number][]; correct: number }
 export type Message = { from: "bot" | "me"; text?: string; poll?: Poll; time: string }
 export type Chat = { kind: "dm" | "group"; name: string; sub: string; messages: Message[] }
-export type Scene = { title: string; text: string; mood: Mood; chat: Chat }
+export type Scene = { title: string; text: string; pose: Pose; chat: Chat }
 
 const BOT = "Le Petit Nicolas"
 
@@ -36,7 +36,7 @@ const fr = {
     {
       title: "Le cours se termine.",
       text: "Fathom a transcrit. Le professeur reçoit le quiz.",
-      mood: "think",
+      pose: "phone",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -50,7 +50,7 @@ const fr = {
     {
       title: "Les élèves répondent.",
       text: "Cinq sondages dans le groupe de la classe. Depuis leur téléphone.",
-      mood: "talk",
+      pose: "point",
       chat: {
         kind: "group", name: "4ème B · Maths", sub: "29 membres",
         messages: [
@@ -62,7 +62,7 @@ const fr = {
     {
       title: "Le professeur reçoit le diagnostic.",
       text: "Pas une note : l'erreur dominante, et quoi refaire.",
-      mood: "cheer",
+      pose: "ok",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -75,7 +75,7 @@ const fr = {
     {
       title: "Chaque élève revoit ses erreurs.",
       text: "Un message à ceux qui se sont trompés. Le tuteur fait le reste.",
-      mood: "wink",
+      pose: "cheer",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -143,7 +143,7 @@ const fr = {
     team: "Construit en une journée à Paris par une équipe de quatre, pour les collèges qui n'ont pas d'assistant pédagogique.",
     stack: "Fathom · Inngest · Mastra · Claude · Telegram · CopilotKit · Supabase · Vercel",
     code: "Code source",
-    avatar: "Avatar : style Adventurer de Lisa Wischofsky (CC BY 4.0), via DiceBear.",
+    avatar: "Illustrations : Notionists de Zoish (CC0), via DiceBear.",
   },
 }
 
@@ -173,7 +173,7 @@ const en: typeof fr = {
     {
       title: "The class ends.",
       text: "Fathom has transcribed. The teacher receives the quiz.",
-      mood: "think",
+      pose: "phone",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -187,7 +187,7 @@ const en: typeof fr = {
     {
       title: "Students answer.",
       text: "Five polls in the class group. From their phones.",
-      mood: "talk",
+      pose: "point",
       chat: {
         kind: "group", name: "4ème B · Maths", sub: "29 members",
         messages: [
@@ -199,7 +199,7 @@ const en: typeof fr = {
     {
       title: "The teacher gets the diagnosis.",
       text: "Not a score: the main error, and what to redo.",
-      mood: "cheer",
+      pose: "ok",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -212,7 +212,7 @@ const en: typeof fr = {
     {
       title: "Each student reviews their mistakes.",
       text: "A message to those who got it wrong. The tutor does the rest.",
-      mood: "wink",
+      pose: "cheer",
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
@@ -280,7 +280,7 @@ const en: typeof fr = {
     team: "Built in one day in Paris by a team of four, for the schools that have no teaching assistant.",
     stack: "Fathom · Inngest · Mastra · Claude · Telegram · CopilotKit · Supabase · Vercel",
     code: "Source code",
-    avatar: "Avatar: Adventurer style by Lisa Wischofsky (CC BY 4.0), via DiceBear.",
+    avatar: "Illustrations: Notionists by Zoish (CC0), via DiceBear.",
   },
 }
 
