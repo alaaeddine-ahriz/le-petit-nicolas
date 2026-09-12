@@ -63,10 +63,6 @@ export function Landing({ lang }: { lang: Lang }) {
   const { active, bind } = useActiveScene(t.scenes.length)
   const [progress, setProgress] = useState(0)
 
-  const problemStats = lang === "fr"
-    ? [["30", "élèves"], ["1", "cours"], ["0", "assistant"]]
-    : [["30", "students"], ["1", "lesson"], ["0", "assistants"]]
-
   useEffect(() => {
     const updateProgress = () => {
       const scrollable = document.documentElement.scrollHeight - window.innerHeight
@@ -152,7 +148,7 @@ export function Landing({ lang }: { lang: Lang }) {
               <span>{lang === "fr" ? "le prof valide" : "teacher approved"}</span>
             </div>
             <div className="mascot-caption">
-              <span>{lang === "fr" ? "Il écoute. Tu enseignes." : "It listens. You teach."}</span>
+              <span>{lang === "fr" ? "Il écoute. Vous enseignez." : "It listens. You teach."}</span>
               <span className="caption-dot" aria-hidden="true" />
             </div>
           </div>
@@ -162,15 +158,8 @@ export function Landing({ lang }: { lang: Lang }) {
         <section className="wrap narrow problem-section">
           <Reveal>
             <span className="section-kicker">01 <span /> {lang === "fr" ? "Le point de départ" : "The starting point"}</span>
-            <div className="problem-layout">
-              <div>
-                <h2>{t.problem.title}</h2>
-                <p>{t.problem.text}</p>
-              </div>
-              <div className="problem-stats" aria-label={lang === "fr" ? "Le problème en chiffres" : "The problem in numbers"}>
-                {problemStats.map(([value, label]) => <div className="problem-stat" key={label}><strong>{value}</strong><span>{label}</span></div>)}
-              </div>
-            </div>
+            <h2>{t.problem.title}</h2>
+            <p>{t.problem.text}</p>
           </Reveal>
         </section>
 
@@ -235,7 +224,6 @@ export function Landing({ lang }: { lang: Lang }) {
                   <span className="card-index">0{i + 1}</span>
                   <h3>{title}</h3>
                   <p>{text}</p>
-                  <span className="card-tail" aria-hidden="true">↗</span>
                 </article>
               </Reveal>
             ))}
@@ -246,7 +234,7 @@ export function Landing({ lang }: { lang: Lang }) {
         <section className="band">
           <div className="wrap">
             <Reveal>
-              <span className="section-kicker">05 <span /> {lang === "fr" ? "La confiance" : "The trust layer"}</span>
+              <span className="section-kicker">05 <span /> {lang === "fr" ? "La confiance" : "Trust"}</span>
               <h2>{t.rules.title}</h2>
             </Reveal>
             <div className="rules">

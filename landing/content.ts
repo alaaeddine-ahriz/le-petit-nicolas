@@ -13,7 +13,7 @@ const fr = {
   meta: {
     title: "Le Petit Nicolas — Le suivi du cours s'écrit tout seul",
     description:
-      "Un assistant pédagogique qui assiste au cours en ligne, écrit le quiz, l'envoie aux élèves sur Telegram et dit au professeur ce qui a été mal compris.",
+      "Un assistant pédagogique qui suit le cours en ligne, écrit le quiz, l'envoie aux élèves sur Telegram et dit au professeur ce qui a été mal compris.",
   },
   nav: { lang: "Langue" },
   hero: {
@@ -52,10 +52,10 @@ const fr = {
       title: "Les élèves répondent.",
       text: "Cinq sondages dans le groupe de la classe. Depuis leur téléphone.",
       chat: {
-        kind: "group", name: "4ème B · Maths", sub: "29 membres",
+        kind: "group", name: "4ème B · Maths", sub: "32 membres",
         messages: [
           { from: "bot", text: "Quiz du cours d'aujourd'hui. 5 questions.", time: "15:05" },
-          { from: "bot", poll: { question: "Q3 · Calcule : 1/4 + 2/3", options: [["3/7", 10], ["3/12", 0], ["11/12", 18], ["2/12", 0]], correct: 2 }, time: "15:05" },
+          { from: "bot", poll: { question: "Q3 · Calcule : 1/4 + 2/3", options: [["3/7", 11], ["3/12", 0], ["11/12", 19], ["2/12", 0]], correct: 2 }, time: "15:05" },
         ],
       },
     },
@@ -65,8 +65,8 @@ const fr = {
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
-          { from: "bot", text: "18 bonnes réponses sur 28. Erreur dominante : ils additionnent les dénominateurs. Suggestion : refaire 1/2 + 1/3 au tableau.", time: "16:10" },
-          { from: "bot", text: "10 élèves ont choisi 3/7 : Yassine, Adam, Hugo… La carte de la classe est dans la console.", time: "16:10" },
+          { from: "bot", text: "19 bonnes réponses sur 30. Erreur dominante : ils additionnent les dénominateurs. Suggestion : refaire 1/2 + 1/3 au tableau.", time: "16:10" },
+          { from: "bot", text: "11 élèves ont choisi 3/7 : Yassine, Adam, Hugo… La carte de la classe est dans la console.", time: "16:10" },
           { from: "me", text: "merci", time: "16:12" },
         ],
       },
@@ -88,11 +88,11 @@ const fr = {
   ] as Scene[],
   trick: {
     title: "Les mauvaises réponses sont le diagnostic.",
-    text: "Chaque distracteur est écrit pour attraper une erreur précise. Compter qui a choisi quoi, c'est déjà savoir quoi refaire au prochain cours.",
+    text: "Chaque mauvaise réponse est écrite pour attraper une erreur précise. Compter qui a choisi quoi, c'est déjà savoir quoi refaire au prochain cours.",
     question: "1/4 + 2/3 = ?",
     rows: [
       ["3/7", "additionne les dénominateurs"],
-      ["3/12", "oublie de transformer les numérateurs"],
+      ["3/12", "oublie de convertir les numérateurs"],
       ["2/12", "multiplie au lieu d'additionner"],
       ["11/12", "juste"],
     ],
@@ -109,7 +109,7 @@ const fr = {
     title: "Construit pour la classe, pas pour l'administration.",
     items: [
       ["Le professeur dirige.", "L'agent propose, le professeur approuve. Rien n'arrive aux élèves sans son « ok »."],
-      ["Seul le cours est enregistré.", "La visio est transcrite ; on garde le texte, pas l'audio. Pas de caméra, pas de voix d'élève."],
+      ["Transcrit, jamais enregistré.", "La visio est transcrite ; on garde le texte du cours, pas l'audio. Pas de caméra, pas de voix d'élève."],
       ["Le rapport va au professeur.", "Jamais à l'administration. Jamais une note sur le professeur."],
       ["Les élèves n'installent rien.", "Telegram, qu'ils ont déjà. Des sondages dans le groupe, un message privé pour le tutorat."],
     ],
@@ -118,8 +118,8 @@ const fr = {
     title: "Questions fréquentes",
     items: [
       ["Et si le cours est en présentiel ?", "Aujourd'hui, Le Petit Nicolas rejoint les cours en visio (Zoom, Meet, Teams). La version « téléphone posé sur le bureau » est la prochaine étape."],
-      ["Que devient l'enregistrement ?", "La visio est transcrite, on garde le texte du cours, jamais l'audio. Aucune voix d'élève, aucune caméra."],
-      ["Quelles matières, quels niveaux ?", "Le quiz est écrit à partir du transcript et du programme, donc toutes les matières. Testé au collège, sur les fractions en 4ème."],
+      ["Le cours est-il enregistré ?", "Non. La visio est transcrite et seul le texte du cours est conservé, jamais l'audio. Aucune caméra, aucune voix d'élève."],
+      ["Quelles matières, quels niveaux ?", "Le quiz est écrit à partir de la transcription du cours et du programme, donc toutes les matières. Testé au collège, sur les fractions en 4ème."],
       ["Et si le quiz est mauvais ?", "Le professeur le voit avant les élèves. Un « ok » l'envoie, un « non » l'enterre, et il peut le modifier dans la console."],
       ["Combien ça coûte ?", "Rien pour l'instant : c'est un prototype de hackathon. On cherche des professeurs pour l'essayer avec leur classe."],
     ],
@@ -145,13 +145,13 @@ const en: typeof fr = {
   },
   nav: { lang: "Language" },
   hero: {
-    eyebrow: "For secondary-school teachers who teach online",
+    eyebrow: "For middle-school teachers who teach online",
     title: { before: "The lesson's follow‑up writes ", highlight: "itself", after: "." },
     lead:
       "After every online class, Le Petit Nicolas sends students a quiz about what was actually taught, and gives the teacher not a score, but what the class misunderstood.",
     cta: "How it works",
     secondary: "See the code",
-    trust: ["Nothing to install for students", "The teacher stays in charge", "Audio is never kept"],
+    trust: ["Nothing for students to install", "The teacher stays in charge", "Audio is never kept"],
     bubble: "Hi! I'll handle the quiz, you teach.",
   },
   problem: {
@@ -180,10 +180,10 @@ const en: typeof fr = {
       title: "Students answer.",
       text: "Five polls in the class group. From their phones.",
       chat: {
-        kind: "group", name: "4ème B · Maths", sub: "29 members",
+        kind: "group", name: "4ème B · Maths", sub: "32 members",
         messages: [
           { from: "bot", text: "Today's quiz. 5 questions.", time: "3:05 pm" },
-          { from: "bot", poll: { question: "Q3 · Compute: 1/4 + 2/3", options: [["3/7", 10], ["3/12", 0], ["11/12", 18], ["2/12", 0]], correct: 2 }, time: "3:05 pm" },
+          { from: "bot", poll: { question: "Q3 · Compute: 1/4 + 2/3", options: [["3/7", 11], ["3/12", 0], ["11/12", 19], ["2/12", 0]], correct: 2 }, time: "3:05 pm" },
         ],
       },
     },
@@ -193,8 +193,8 @@ const en: typeof fr = {
       chat: {
         kind: "dm", name: BOT, sub: "bot",
         messages: [
-          { from: "bot", text: "18 correct out of 28. Main error: they add the denominators. Suggestion: redo 1/2 + 1/3 on the board.", time: "4:10 pm" },
-          { from: "bot", text: "10 students picked 3/7: Yassine, Adam, Hugo… The class map is in the console.", time: "4:10 pm" },
+          { from: "bot", text: "19 correct out of 30. Main error: they add the denominators. Suggestion: redo 1/2 + 1/3 on the board.", time: "4:10 pm" },
+          { from: "bot", text: "11 students picked 3/7: Yassine, Adam, Hugo… The class map is in the console.", time: "4:10 pm" },
           { from: "me", text: "thanks", time: "4:12 pm" },
         ],
       },
@@ -237,7 +237,7 @@ const en: typeof fr = {
     title: "Built for the classroom, not for the administration.",
     items: [
       ["The teacher leads.", "The agent proposes, the teacher approves. Nothing reaches students without their “ok”."],
-      ["Only the lesson is recorded.", "The call is transcribed; we keep the text, not the audio. No camera, no student voices."],
+      ["Transcribed, never recorded.", "The call is transcribed; we keep the lesson's text, not the audio. No camera, no student voices."],
       ["The report goes to the teacher.", "Never to the administration. Never a score on the teacher."],
       ["Students install nothing.", "Telegram, which they already have. Polls in the group, a private message for tutoring."],
     ],
@@ -246,7 +246,7 @@ const en: typeof fr = {
     title: "Frequently asked questions",
     items: [
       ["What about in-person classes?", "Today Le Petit Nicolas joins online classes (Zoom, Meet, Teams). The “phone on the desk” version is the next step."],
-      ["What happens to the recording?", "The call is transcribed; we keep the lesson's text, never the audio. No student voices, no camera."],
+      ["Is the class recorded?", "No. The call is transcribed and only the lesson's text is kept, never the audio. No camera, no student voices."],
       ["Which subjects and levels?", "The quiz is written from the transcript and the syllabus, so any subject. Tested in middle school, on fractions."],
       ["What if the quiz is bad?", "The teacher sees it before the students do. An “ok” sends it, a “no” buries it, and it can be edited in the console."],
       ["How much does it cost?", "Nothing for now: it's a hackathon prototype. We're looking for teachers to try it with their class."],
@@ -258,7 +258,7 @@ const en: typeof fr = {
     cta: "Write to the team",
   },
   footer: {
-    team: "Built in one day in Paris by a team of four, for the schools that have no teaching assistant.",
+    team: "Built in one day in Paris by a team of four, for schools that have no teaching assistant.",
     code: "Source code",
     avatar: "Illustrations: Notionists by Zoish (CC0), via DiceBear.",
   },
