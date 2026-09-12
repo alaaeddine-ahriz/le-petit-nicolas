@@ -147,3 +147,23 @@ create index on quiz_options (quiz_id);
 create index on quiz_answers (quiz_id);
 create index on quiz_answers (student_id);
 create index on student_concept_profile (student_id);
+
+-- ---------- Row-Level Security ----------
+-- Enabled with NO policies, on purpose: the publishable/anon key can then read
+-- and write nothing, and every access goes through the server with the service
+-- role key (which bypasses RLS). Supabase enables this automatically on new
+-- tables — stated explicitly here so this file matches the live database.
+-- See SCHEMA.md "Access model" before adding policies or turning this off.
+
+alter table teachers                 enable row level security;
+alter table classes                  enable row level security;
+alter table students                 enable row level security;
+alter table lessons                  enable row level security;
+alter table lesson_transcript_chunks enable row level security;
+alter table concepts_detected        enable row level security;
+alter table quizzes                  enable row level security;
+alter table quiz_options             enable row level security;
+alter table quiz_answers             enable row level security;
+alter table teacher_interventions    enable row level security;
+alter table lesson_summaries         enable row level security;
+alter table student_concept_profile  enable row level security;

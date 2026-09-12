@@ -75,13 +75,34 @@ account gets matched to their existing `teachers` row (created via Auth0 on
 the console) is still open — e.g. a one-time linking code shown in the
 console, or the teacher being the one who invited the bot / owns the class.
 
+## Access model: RLS on, service role only (decided)
+
+**RLS is enabled on all 12 tables with zero policies** — Supabase turns it on
+automatically for new tables, and the migration now makes that explicit so the
+file and the live database agree. With no policies:
+
+- the **publishable/anon key can do nothing** — reads return `[]` with no
+  error, writes fail with `42501 new row violates row-level security policy`;
+- the **`SUPABASE_SERVICE_ROLE_KEY` bypasses RLS** and works normally.
+
+**So every DB access goes through the server with the service role key** — in
+the Next.js app, `agent/src/utils/supabase/admin.ts`. Never query Supabase from
+a client component; it will silently look empty.
+
+We kept it this way on purpose. Nothing in this architecture needs browser-side
+DB access — Fathom ingest, quiz generation, the Telegram bot and the CopilotKit
+runtime are all server-side — so this costs us nothing and saves wiring Auth0
+JWTs into RLS policies during a hackathon. The one thing it rules out is
+Supabase Realtime from the browser; live teacher UI updates stream through
+CopilotKit instead.
+
+If this ever becomes a real product, the fix is policies scoped by `teacher_id`
+(mapped from the Auth0 JWT) — **not** disabling RLS. The publishable key ships
+inside the JS bundle, so an open table means anyone can read every student's
+record.
+
 ## Not yet decided / TODO
 
-- [ ] Row-Level Security: tables are currently open (RLS disabled) for hackathon
-      speed. The backend agent should use `SUPABASE_SERVICE_ROLE_KEY` (bypasses
-      RLS) for all writes. If the CopilotKit console talks to Supabase directly
-      with the anon key, RLS scoped by `teacher_id` (mapped from the Auth0 JWT)
-      should be added before any real deployment.
 - [ ] `concept_label` / `misconception_label` are free-text for now (fastest to
       ship). Consider a `concepts` catalog table later if we need consistent
       naming across lessons instead of relying on Claude to be consistent.

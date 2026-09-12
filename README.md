@@ -20,3 +20,9 @@ npm run dev
 ```
 
 See [agent/README.md](agent/README.md).
+
+## Database
+
+The schema is applied and live. Before querying Supabase from any folder, read
+[data/SCHEMA.md](data/SCHEMA.md) — RLS is on with no policies, so only the
+server-side service role key can read or write.

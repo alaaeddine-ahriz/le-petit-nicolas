@@ -89,15 +89,21 @@ Close on the line: *"Every class gets a teaching assistant, for the price of a p
 ---
 
 ## Équipe & répartition des tâches
-- **Ahriz** — frontend (console CopilotKit / UI enseignant)
-- **Juan & Amira** — backend (agent, intégrations Deepgram/Claude/Telegram/Auth0/Exa)
-- **Ayman** — Supabase (DB, schéma, .env)
+Un dossier par composant, un owner par dossier (voir [README.md](README.md)) :
+
+| Dossier  | Quoi                                                      | Qui |
+|----------|-----------------------------------------------------------|-----|
+| `agent/` | Runtime agent + tools + chat UI (Next.js autonome)         | Ahriz / Juan |
+| `app/`   | Console web enseignant                                     | Ahriz |
+| `brain/` | Fonctions Claude : checks, analyse des réponses, quiz, notes | Juan |
+| `io/`    | Channel Telegram, ingestion du transcript                  | Amira |
+| `data/`  | Schéma Supabase, repositories, Auth0                       | Ayman |
 
 ## Notes de contexte
 - Le texte anglais ci-dessus est le fichier de soumission fourni par un membre de l'équipe (déjà rédigé) — **corrigé** pour refléter le modèle 1:1 (voir ci-dessous), le texte original parlait d'un groupe classe.
-- Repo actuellement vide — rien n'est encore scaffoldé (backend agent, bot Telegram, console CopilotKit, intégrations Auth0/Exa/Claude/Deepgram).
-- Stack cible : Telegram (grammY), CopilotKit, Auth0 (CIBA / async authorization), Exa, Claude, Deepgram.
+- Stack : CopilotKit (runtime + channel Telegram via `@copilotkit/channels-telegram`), Supabase, Auth0 (CIBA / async authorization), Exa, Claude, Fathom (transcript post-call).
 - Canaux visés à terme : Telegram, mail, Slack, SMS (via une interface `Channel` agnostique du canal).
+- État : `agent/` tourne (CopilotKit + Exa + channel Telegram, Supabase câblé), `data/` a son schéma appliqué en base. `app/`, `brain/` et `io/` sont encore des dossiers vides.
 
 ### Décision archi : chat privé 1:1, pas de groupe classe
 Les élèves parlent à l'agent **individuellement** en chat privé Telegram — il n'y a **pas** de groupe classe. Conséquences :
@@ -116,10 +122,18 @@ Conséquences :
 - **À vérifier avec Juan** : quel MCP Fathom précisément (plusieurs implémentations communautaires existent, ex. `Dot-Fun/fathom-mcp`), et s'il expose un **webhook** "transcript ready" pour déclencher le traitement automatiquement plutôt que de poller.
 - ⚠️ **Reste en tension non résolue** : la conclusion de la description ("every class gets a teaching assistant, for the price of a phone on the desk", + le paragraphe Casablanca/Dakar/Abidjan) suppose un simple téléphone. Avec Google Meet, il faut un ordinateur + connexion correcte côté prof — à retravailler ou assumer explicitement dans la version finale du pitch.
 
+### Décision archi : accès Supabase côté serveur uniquement
+RLS est activé sur les 12 tables **sans aucune policy**. Donc la publishable key ne peut ni lire (retourne vide, sans erreur) ni écrire (`42501`) — seule la `SUPABASE_SERVICE_ROLE_KEY` passe, côté serveur.
+
+C'est un choix assumé : rien dans l'archi n'a besoin d'accès DB depuis le navigateur (ingestion Fathom, génération de quiz, bot Telegram et runtime CopilotKit sont tous côté serveur), donc on a la sécurité gratuitement plutôt que de câbler les JWT Auth0 dans des policies RLS pendant un hackathon. Seule contrainte : pas de Supabase Realtime depuis le front — les mises à jour live de l'UI prof passent par le stream CopilotKit.
+
+Ne pas "corriger" ça en désactivant RLS : la publishable key est embarquée dans le bundle JS, donc table ouverte = dossier de n'importe quel élève lisible par n'importe qui. Détails dans [data/SCHEMA.md](data/SCHEMA.md).
+
 ## TODO / à décider
-- [ ] Choisir le point de départ technique (scaffolding repo, bot Telegram, ou pipeline audio → transcription).
-- [ ] Définir la stack précise (langage/framework backend, hosting).
+- [ ] Comment lier le `/start` Telegram d'un prof à son compte `teachers` existant (créé via Auth0) — à trancher avec `io/`.
+- [ ] Quel MCP Fathom exactement, et s'il expose un webhook "transcript ready".
+- [ ] Retravailler la conclusion du pitch (tension "téléphone sur le bureau" vs Google Meet, voir ci-dessus).
 - [ ] Préparer les slides / la vidéo de démo.
 
 ## Schéma Supabase
-Voir [data/SCHEMA.md](data/SCHEMA.md) et [data/migrations/0001_init.sql](data/migrations/0001_init.sql) — schéma initial en place (raw layer + `student_concept_profile` distillé, qui implémente la "mémoire par élève"). Domaine possédé par `data/` (Supabase + Auth0) selon la convention du repo — voir [README.md](README.md).
+Voir [data/SCHEMA.md](data/SCHEMA.md) et [data/migrations/0001_init.sql](data/migrations/0001_init.sql) — schéma **appliqué en base** (12 tables : raw layer + `student_concept_profile` distillé, qui implémente la "mémoire par élève"). Domaine possédé par `data/` (Supabase + Auth0) selon la convention du repo — voir [README.md](README.md).
