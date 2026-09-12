@@ -194,11 +194,27 @@ async function handleMessage(
  * Forwards a chat message to the given agent as one conversation turn, over
  * the same AG-UI HTTP endpoint CopilotChat itself uses
  * (/api/copilotkit/agent/<agentId>/run), and relays the assistant's final text
- * reply back to Telegram. threadId is stable per (agent, chat) pair so the
- * agent's own server-side thread state carries across messages within this
- * server's lifetime.
+ * reply back to Telegram.
+ *
+ * IMPORTANT: BuiltInAgent does NOT retain conversation history across
+ * separate HTTP requests on its own just because threadId matches -
+ * confirmed live (asked it to remember a word in one request, asked for it
+ * back in the next: it had no memory of the first message at all). So this
+ * bridge keeps its own per-thread message log and resends the FULL history
+ * on every turn, the same way a browser-based CopilotChat client would from
+ * its own local state. Without this, every "yes, that one" / "send it" /
+ * "still in English?" follow-up is talking to an agent with a blank slate.
  */
 const EDIT_THROTTLE_MS = 600;
+const MAX_HISTORY_MESSAGES = 40;
+
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
+const conversationHistory = new Map<string, ChatMessage[]>();
 
 async function forwardToAgent(
   botToken: string,
@@ -212,6 +228,10 @@ async function forwardToAgent(
 
   const placeholderId = await sendMessage(botToken, chatId, "⏳ Working on it...");
 
+  const history = conversationHistory.get(threadId) ?? [];
+  const userMessage: ChatMessage = { id: randomUUID(), role: "user", content: text };
+  const messages = [...history, userMessage].slice(-MAX_HISTORY_MESSAGES);
+
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -220,7 +240,7 @@ async function forwardToAgent(
         threadId,
         runId: randomUUID(),
         state: {},
-        messages: [{ id: randomUUID(), role: "user", content: text }],
+        messages,
         tools: [],
         context: [],
         forwardedProps: {},
@@ -238,7 +258,9 @@ async function forwardToAgent(
       return;
     }
 
-    await streamAgentReplyToTelegram(botToken, chatId, placeholderId, response);
+    const replyText = await streamAgentReplyToTelegram(botToken, chatId, placeholderId, response);
+    const assistantMessage: ChatMessage = { id: randomUUID(), role: "assistant", content: replyText };
+    conversationHistory.set(threadId, [...messages, assistantMessage].slice(-MAX_HISTORY_MESSAGES));
   } catch (err) {
     console.error(`Failed to forward message to ${agentId} agent:`, err);
     await finalizePlaceholder(
